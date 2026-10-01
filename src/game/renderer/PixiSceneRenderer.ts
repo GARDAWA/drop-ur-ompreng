@@ -135,17 +135,33 @@ export class PixiSceneRenderer {
   }
 
   private setupObstacleSprites(): void {
-    const puddleTex = AssetFactory.getPuddleTexture();
-    const rockTex = AssetFactory.getRockTexture();
-
     for (const obs of this.gameLoop.level.obstacles) {
-      const tex = obs.type === 'puddle' ? puddleTex : rockTex;
-      const sprite = new Sprite(tex);
-      if (obs.type === 'puddle') {
-        sprite.position.set(obs.x, obs.y + 4);
-      } else {
-        sprite.position.set(obs.x, obs.y);
+      let tex;
+      switch (obs.type) {
+        case 'puddle':
+          tex = AssetFactory.getPuddleTexture();
+          break;
+        case 'speedbump':
+          tex = AssetFactory.getSpeedBumpTexture();
+          break;
+        case 'rock':
+          tex = AssetFactory.getRockTexture();
+          break;
+        case 'cart':
+          tex = AssetFactory.getCartTexture();
+          break;
+        case 'chicken':
+          tex = AssetFactory.getChickenTexture();
+          break;
+        case 'crate':
+          tex = AssetFactory.getCrateTexture();
+          break;
+        default:
+          tex = AssetFactory.getRockTexture();
       }
+
+      const sprite = new Sprite(tex);
+      sprite.position.set(obs.x, obs.y);
       this.obstacleLayer.addChild(sprite);
       this.obstacleSprites.push(sprite);
     }
@@ -160,8 +176,15 @@ export class PixiSceneRenderer {
     // 1. Move camera viewport
     this.stageContainer.x = -camX;
 
-    // 2. Animate Local Player
-    // Bobbing / Riding vibration while moving
+    // 2. Sync animated obstacle positions (e.g. jumping chicken)
+    const obstacles = this.gameLoop.level.obstacles;
+    for (let i = 0; i < obstacles.length; i++) {
+      if (this.obstacleSprites[i]) {
+        this.obstacleSprites[i].position.set(obstacles[i].x, obstacles[i].y);
+      }
+    }
+
+    // 3. Animate Local Player
     const bounceY = player.isGrounded ? Math.sin(this.animTimer * 20) * 1.5 : 0;
     this.playerSprite.position.set(player.x + 32, player.y + bounceY);
     this.playerBadge.position.set(player.x + 32, player.y - 60 + bounceY);
@@ -183,7 +206,7 @@ export class PixiSceneRenderer {
       });
     }
 
-    // 3. Render Remote Players (Ghosts)
+    // 4. Render Remote Players (Ghosts)
     const remotePalette = ['blue', 'red', 'purple'] as const;
     let colorIdx = 0;
 
@@ -217,7 +240,7 @@ export class PixiSceneRenderer {
       entry.badge.position.set(remote.x + 32, remote.y - 58 + remoteBounce);
     }
 
-    // 4. Trigger Finish Confetti Blast
+    // 5. Trigger Finish Confetti Blast
     if (this.gameLoop.isFinished && !this.finishConfettiTriggered) {
       this.finishConfettiTriggered = true;
       sound.playWin();
@@ -238,7 +261,7 @@ export class PixiSceneRenderer {
       }
     }
 
-    // 5. Update and Draw Particles
+    // 6. Update and Draw Particles
     this.particleGraphics.clear();
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];

@@ -1,9 +1,10 @@
 import { Player, InputState } from '../entities/Player';
 import { LevelManager } from '../level/LevelManager';
 import { Camera } from './Camera';
+import { ObstacleType } from '../entities/Obstacle';
 
 export interface GameLoopCallbacks {
-  onTick?: (playerX: number, progressRatio: number, timeElapsed: number) => void;
+  onTick?: (playerX: number, progressRatio: number, timeElapsed: number, hitType: ObstacleType | null) => void;
   onFinish?: (timeElapsed: number) => void;
 }
 
@@ -29,6 +30,9 @@ export class GameLoop {
     this.timeElapsed = 0;
     this.player.x = 100;
     this.player.y = 400;
+    this.player.velocityY = 0;
+    this.player.isGrounded = true;
+    this.player.speedModifier = 1.0;
     this.level.reset();
   }
 
@@ -36,14 +40,26 @@ export class GameLoop {
     if (!this.isRunning || this.isFinished) return;
 
     this.timeElapsed += deltaSeconds;
+
+    // Update level obstacle animations (e.g. jumping chicken)
+    this.level.update(deltaSeconds);
+
+    // Update player movement and physics
     this.player.update(deltaSeconds, input);
-    this.level.checkCollisions(this.player);
+
+    // Collision check
+    const hitType = this.level.checkCollisions(this.player);
+
+    // Camera follow
     this.camera.update(this.player.x, viewportWidth);
 
-    const progressRatio = Math.min(1.0, this.player.x / this.level.finishX);
+    // Accurate progress from Start (x=100) to Finish (x=5800)
+    const startX = 100;
+    const finishX = this.level.finishX;
+    const progressRatio = Math.max(0, Math.min(1.0, (this.player.x - startX) / (finishX - startX)));
 
     if (this.callbacks.onTick) {
-      this.callbacks.onTick(this.player.x, progressRatio, this.timeElapsed);
+      this.callbacks.onTick(this.player.x, progressRatio, this.timeElapsed, hitType);
     }
 
     if (this.level.checkFinish(this.player.x)) {

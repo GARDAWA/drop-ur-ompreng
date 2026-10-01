@@ -26,6 +26,7 @@ export default function RacePage() {
   const [players, setPlayers] = useState<PlayerState[]>([]);
   const [showResult, setShowResult] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [obstacleWarning, setObstacleWarning] = useState<string | null>(null);
 
   const gameLoopRef = useRef<GameLoop | null>(null);
   const rendererRef = useRef<PixiSceneRenderer | null>(null);
@@ -65,10 +66,14 @@ export default function RacePage() {
         remotePlayersRef.current.set(id, remote);
       }
       remote.setTargetPosition(x, y);
+
+      // Keep player list position updated for mini-track
+      setPlayers((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, x, y } : p))
+      );
     });
 
     service.onPlayerFinish((id, time) => {
-      // If someone finishes, ensure result can be shown
       if (hasFinishedRef.current) {
         setShowResult(true);
       }
@@ -118,26 +123,57 @@ export default function RacePage() {
   const handleGameReady = useCallback((game: GameApp) => {
     if (!game.app) return;
 
-    let previousPenaltyTimer = 0;
-
     const gameLoop = new GameLoop({
-      onTick: (x, ratio, time) => {
+      onTick: (x, ratio, time, hitType) => {
         setTimeElapsed(time);
         setProgressRatio(ratio);
         setCurrentX(x);
 
-        // Sound effect on obstacle collision
-        if (gameLoop.player.speedModifier < 1.0 && previousPenaltyTimer <= 0) {
-          if (gameLoop.player.speedModifier <= 0.3) {
-            sound.playHit();
-          } else {
-            sound.playPuddle();
+        // Sound effect based on hit obstacle
+        if (hitType) {
+          switch (hitType) {
+            case 'chicken':
+              sound.playChicken();
+              break;
+            case 'speedbump':
+              sound.playBump();
+              break;
+            case 'crate':
+              sound.playWoodBreak();
+              break;
+            case 'puddle':
+              sound.playPuddle();
+              break;
+            case 'cart':
+            case 'rock':
+              sound.playHit();
+              break;
           }
         }
-        previousPenaltyTimer = gameLoop.player.speedModifier < 1.0 ? 1 : 0;
+
+        // Check if an obstacle is within 320px ahead for HUD warning
+        const upcoming = gameLoop.level.obstacles.find(
+          (obs) => !obs.isTriggered && obs.x > x && obs.x - x < 320
+        );
+        if (upcoming) {
+          const warningLabels: Record<string, string> = {
+            cart: 'AWAS GEROBAK BAKSO!',
+            chicken: 'AWAS AYAM NYEBRANG!',
+            speedbump: 'AWAS POLISI TIDUR!',
+            crate: 'AWAS PETI KAYU!',
+            puddle: 'AWAS KUBANGAN AIR!',
+            rock: 'AWAS PEMBATAS JALAN!',
+          };
+          setObstacleWarning(warningLabels[upcoming.type] || 'AWAS RINTANGAN DEPAN!');
+        } else {
+          setObstacleWarning(null);
+        }
 
         // Speed calculation in km/h
-        const currentSpeed = (gameLoop.player.baseSpeed + (inputRef.current.right ? 40 : inputRef.current.left ? -40 : 0)) * gameLoop.player.speedModifier;
+        const currentSpeed =
+          (gameLoop.player.baseSpeed +
+            (inputRef.current.right ? 40 : inputRef.current.left ? -40 : 0)) *
+          gameLoop.player.speedModifier;
         setPlayerSpeedKmh(Math.round(currentSpeed * 0.16));
 
         // Network sync
@@ -186,6 +222,7 @@ export default function RacePage() {
         isMuted={isMuted}
         onToggleSound={toggleSound}
         players={players}
+        approachingObstacleWarning={obstacleWarning}
       />
       {showResult && (
         <ResultModal

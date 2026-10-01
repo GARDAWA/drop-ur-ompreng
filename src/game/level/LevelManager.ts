@@ -1,4 +1,4 @@
-import { Obstacle } from '../entities/Obstacle';
+import { Obstacle, ObstacleType } from '../entities/Obstacle';
 import { Player } from '../entities/Player';
 import { checkAABB } from '../physics/Collision';
 
@@ -13,6 +13,7 @@ export class LevelManager {
   public trackLength: number;
   public finishX: number;
   public obstacles: Obstacle[] = [];
+  public lastCollidedType: ObstacleType | null = null;
 
   constructor(config: LevelConfig) {
     this.groundY = config.groundY;
@@ -22,45 +23,86 @@ export class LevelManager {
   }
 
   private generateObstacles(): void {
-    // Generate deterministic obstacle course between SPPG (x=500) and School (x=5500)
-    const positions = [
-      { x: 700, type: 'puddle' as const },
-      { x: 1200, type: 'rock' as const },
-      { x: 1800, type: 'puddle' as const },
-      { x: 2400, type: 'rock' as const },
-      { x: 3000, type: 'puddle' as const },
-      { x: 3600, type: 'rock' as const },
-      { x: 4200, type: 'puddle' as const },
-      { x: 4800, type: 'rock' as const },
-      { x: 5300, type: 'rock' as const },
+    const course: { x: number; type: ObstacleType }[] = [
+      // Stage 1: Pemanasan Keluar dari Dapur SPPG
+      { x: 650, type: 'speedbump' },
+      { x: 950, type: 'puddle' },
+      { x: 1350, type: 'rock' },
+
+      // Stage 2: Area Pasar & Perumahan Warga
+      { x: 1750, type: 'chicken' },
+      { x: 2150, type: 'cart' },
+      { x: 2550, type: 'puddle' },
+      { x: 2900, type: 'crate' },
+      { x: 3300, type: 'speedbump' },
+
+      // Stage 3: Jalur Lintas Cepat & Konstruksi
+      { x: 3700, type: 'rock' },
+      { x: 4050, type: 'chicken' },
+      { x: 4400, type: 'cart' },
+      { x: 4750, type: 'puddle' },
+
+      // Stage 4: Menjelang Gerbang Sekolah SDN 01 Merdeka
+      { x: 5050, type: 'crate' },
+      { x: 5350, type: 'chicken' },
+      { x: 5550, type: 'speedbump' },
     ];
 
-    this.obstacles = positions.map(
-      (pos) => new Obstacle({ x: pos.x, groundY: this.groundY, type: pos.type })
+    this.obstacles = course.map(
+      (item) => new Obstacle({ x: item.x, groundY: this.groundY, type: item.type })
     );
+  }
+
+  public update(deltaSeconds: number): void {
+    for (const obs of this.obstacles) {
+      obs.update(deltaSeconds);
+    }
   }
 
   public checkFinish(playerX: number): boolean {
     return playerX >= this.finishX;
   }
 
-  public checkCollisions(player: Player): void {
+  public checkCollisions(player: Player): ObstacleType | null {
     const playerBounds = player.getBounds();
+    let hitType: ObstacleType | null = null;
+
     for (const obstacle of this.obstacles) {
       if (!obstacle.isTriggered && checkAABB(playerBounds, obstacle.getBounds())) {
         obstacle.isTriggered = true;
-        if (obstacle.type === 'puddle') {
-          player.applyPenalty(0.6, 1.0); // 40% slow for 1s
-        } else {
-          player.applyPenalty(0.2, 0.5); // 80% stop for 0.5s
+        hitType = obstacle.type;
+        this.lastCollidedType = obstacle.type;
+
+        switch (obstacle.type) {
+          case 'puddle':
+            player.applyPenalty(0.6, 0.9);
+            break;
+          case 'speedbump':
+            player.applyPenalty(0.5, 0.6);
+            break;
+          case 'rock':
+            player.applyPenalty(0.2, 0.6);
+            break;
+          case 'chicken':
+            player.applyPenalty(0.4, 0.7);
+            break;
+          case 'cart':
+            player.applyPenalty(0.15, 0.8);
+            break;
+          case 'crate':
+            player.applyPenalty(0.3, 0.6);
+            break;
         }
       }
     }
+
+    return hitType;
   }
 
   public reset(): void {
     for (const obs of this.obstacles) {
       obs.isTriggered = false;
     }
+    this.lastCollidedType = null;
   }
 }

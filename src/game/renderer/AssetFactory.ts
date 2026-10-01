@@ -251,6 +251,212 @@ export class AssetFactory {
   }
 
   /**
+   * Polisi Tidur (Speed Bump) Bergaris Kuning-Hitam
+   */
+  public static getSpeedBumpTexture(): Texture {
+    return this.fromCanvas('speedbump_tex', 70, 20, (ctx) => {
+      // Base bump curve
+      ctx.fillStyle = '#1e293b';
+      ctx.beginPath();
+      ctx.ellipse(35, 12, 34, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Yellow & Black alternating zebra diagonal stripes
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(35, 11, 32, 6, 0, 0, Math.PI * 2);
+      ctx.clip();
+
+      for (let x = 0; x < 70; x += 14) {
+        ctx.fillStyle = '#facc15'; // yellow
+        ctx.fillRect(x, 0, 7, 20);
+        ctx.fillStyle = '#0f172a'; // dark
+        ctx.fillRect(x + 7, 0, 7, 20);
+      }
+      ctx.restore();
+
+      // White reflective edges
+      ctx.strokeStyle = '#fef08a';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(35, 9, 30, 4, 0, Math.PI, Math.PI * 2);
+      ctx.stroke();
+    });
+  }
+
+  /**
+   * Gerobak Bakso / Street Food Cart Indonesia
+   */
+  public static getCartTexture(): Texture {
+    return this.fromCanvas('cart_tex', 90, 68, (ctx) => {
+      // 1. Roda Gerobak Kayu
+      ctx.fillStyle = '#78350f';
+      ctx.beginPath();
+      ctx.arc(28, 52, 14, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#b45309';
+      ctx.beginPath();
+      ctx.arc(28, 52, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#1c1917';
+      ctx.beginPath();
+      ctx.arc(28, 52, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Roda kecil depan
+      ctx.fillStyle = '#78350f';
+      ctx.beginPath();
+      ctx.arc(75, 58, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 2. Badan Gerobak Kayu Coklat
+      ctx.fillStyle = '#92400e';
+      ctx.fillRect(10, 26, 75, 24);
+      ctx.fillStyle = '#b45309';
+      ctx.fillRect(12, 28, 71, 20);
+
+      // Kaki penyangga gerobak
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(14, 50, 6, 12);
+
+      // 3. Etalase Kaca & Panci Kuah Panas
+      // Panci kuah stainless steel
+      ctx.fillStyle = '#cbd5e1';
+      ctx.beginPath();
+      ctx.roundRect(16, 14, 22, 14, 2);
+      ctx.fill();
+      // Tutup panci
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(14, 12, 26, 3);
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(24, 8, 6, 4);
+
+      // Etalase Kaca
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.4)';
+      ctx.fillRect(42, 12, 40, 16);
+      ctx.strokeStyle = '#0284c7';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(42, 12, 40, 16);
+
+      // Mi & Bakso di dalam etalase
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(46, 20, 14, 6);
+      ctx.fillStyle = '#78350f';
+      ctx.beginPath();
+      ctx.arc(68, 22, 4, 0, Math.PI * 2);
+      ctx.arc(76, 21, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 4. Terpal Atap Biru / Oranye
+      ctx.fillStyle = '#0284c7';
+      ctx.beginPath();
+      ctx.moveTo(6, 10);
+      ctx.lineTo(88, 10);
+      ctx.lineTo(84, 4);
+      ctx.lineTo(10, 4);
+      ctx.closePath();
+      ctx.fill();
+
+      // Spanduk BAKSO
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(15, 34, 65, 10);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 8px Arial, sans-serif';
+      ctx.fillText('🍲 BAKSO MBG', 18, 42);
+    });
+  }
+
+  /**
+   * Ayam Kampung Lari / Meloncat
+   */
+  public static getChickenTexture(): Texture {
+    return this.fromCanvas('chicken_tex', 40, 36, (ctx) => {
+      // Ekor Bulu Hijau-Hitam
+      ctx.fillStyle = '#065f46';
+      ctx.beginPath();
+      ctx.moveTo(10, 20);
+      ctx.lineTo(2, 8);
+      ctx.lineTo(14, 14);
+      ctx.closePath();
+      ctx.fill();
+
+      // Badan Bulu Oranye-Emas
+      ctx.fillStyle = '#ea580c';
+      ctx.beginPath();
+      ctx.ellipse(20, 22, 12, 9, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Sayap
+      ctx.fillStyle = '#c2410c';
+      ctx.beginPath();
+      ctx.ellipse(18, 22, 7, 5, -0.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Leher & Kepala
+      ctx.fillStyle = '#ea580c';
+      ctx.beginPath();
+      ctx.arc(28, 14, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Jengger Merah Menyala
+      ctx.fillStyle = '#dc2626';
+      ctx.beginPath();
+      ctx.arc(28, 7, 3, 0, Math.PI * 2);
+      ctx.arc(26, 9, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Paruh Kuning
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath();
+      ctx.moveTo(33, 13);
+      ctx.lineTo(39, 15);
+      ctx.lineTo(33, 17);
+      ctx.closePath();
+      ctx.fill();
+
+      // Mata
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.arc(30, 13, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Kaki Kuning
+      ctx.strokeStyle = '#facc15';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(17, 30); ctx.lineTo(15, 36);
+      ctx.moveTo(23, 30); ctx.lineTo(24, 36);
+      ctx.stroke();
+    });
+  }
+
+  /**
+   * Kotak Kayu / Crate Berserakan
+   */
+  public static getCrateTexture(): Texture {
+    return this.fromCanvas('crate_tex', 48, 44, (ctx) => {
+      // Wood crate body
+      ctx.fillStyle = '#a16207';
+      ctx.fillRect(4, 4, 40, 36);
+
+      // Plank lines
+      ctx.fillStyle = '#ca8a04';
+      ctx.fillRect(6, 6, 36, 10);
+      ctx.fillRect(6, 18, 36, 10);
+      ctx.fillRect(6, 30, 36, 8);
+
+      // Cross frame
+      ctx.strokeStyle = '#713f12';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(4, 4, 40, 36);
+      ctx.beginPath();
+      ctx.moveTo(6, 6); ctx.lineTo(42, 38);
+      ctx.moveTo(42, 6); ctx.lineTo(6, 38);
+      ctx.stroke();
+    });
+  }
+
+  /**
    * Bangunan Dapur SPPG (Pusat Pelayanan Gizi)
    */
   public static getSPPGBuildingTexture(): Texture {

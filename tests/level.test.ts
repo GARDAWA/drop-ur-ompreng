@@ -27,4 +27,23 @@ describe('LevelManager', () => {
     level.checkCollisions(player);
     expect(player.speedModifier).toBeLessThan(1.0);
   });
+
+  it('should include diverse obstacle types along the track', () => {
+    const level = new LevelManager({ groundY: 400 });
+    const types = level.obstacles.map((o) => o.type);
+    expect(types).toContain('puddle');
+    expect(types).toContain('speedbump');
+    expect(types).toContain('rock');
+    expect(types).toContain('cart');
+    expect(types).toContain('chicken');
+    expect(types).toContain('crate');
+  });
+
+  it('should animate dynamic obstacles over time', () => {
+    const level = new LevelManager({ groundY: 400 });
+    const chicken = level.obstacles.find((o) => o.type === 'chicken')!;
+    const initialY = chicken.y;
+    level.update(0.1);
+    expect(chicken.y).not.toBe(initialY);
+  });
 });
