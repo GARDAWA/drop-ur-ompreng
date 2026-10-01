@@ -1,0 +1,30 @@
+import { describe, it, expect } from 'vitest';
+import { LevelManager } from '../src/game/level/LevelManager';
+import { Player } from '../src/game/entities/Player';
+
+describe('LevelManager', () => {
+  it('should initialize track length and finish line', () => {
+    const level = new LevelManager({ groundY: 400 });
+    expect(level.trackLength).toBe(6000);
+    expect(level.finishX).toBe(5800);
+  });
+
+  it('should detect finish line crossed', () => {
+    const level = new LevelManager({ groundY: 400 });
+    expect(level.checkFinish(5799)).toBe(false);
+    expect(level.checkFinish(5800)).toBe(true);
+    expect(level.checkFinish(5900)).toBe(true);
+  });
+
+  it('should trigger obstacle penalty upon collision', () => {
+    const level = new LevelManager({ groundY: 400 });
+    const player = new Player({ startX: 0, groundY: 400 });
+
+    const obstacle = level.obstacles[0];
+    player.x = obstacle.x;
+    player.y = 400;
+
+    level.checkCollisions(player);
+    expect(player.speedModifier).toBeLessThan(1.0);
+  });
+});
