@@ -5,11 +5,14 @@ import { GameApp } from '@/game/core/GameApp';
 
 interface CanvasViewProps {
   onGameReady?: (game: GameApp) => void;
+  onCanvasClick?: () => void;
 }
 
-export const CanvasView: React.FC<CanvasViewProps> = ({ onGameReady }) => {
+export const CanvasView: React.FC<CanvasViewProps> = ({ onGameReady, onCanvasClick }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<GameApp | null>(null);
+  const onGameReadyRef = useRef(onGameReady);
+  onGameReadyRef.current = onGameReady;
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -18,8 +21,8 @@ export const CanvasView: React.FC<CanvasViewProps> = ({ onGameReady }) => {
     gameRef.current = game;
 
     game.init(containerRef.current).then(() => {
-      if (onGameReady) {
-        onGameReady(game);
+      if (onGameReadyRef.current) {
+        onGameReadyRef.current(game);
       }
     });
 
@@ -27,7 +30,13 @@ export const CanvasView: React.FC<CanvasViewProps> = ({ onGameReady }) => {
       game.destroy();
       gameRef.current = null;
     };
-  }, [onGameReady]);
+  }, []); // Run ONCE on mount
 
-  return <div ref={containerRef} className="w-full h-full relative overflow-hidden" />;
+  return (
+    <div
+      ref={containerRef}
+      onClick={onCanvasClick}
+      className="w-full h-full relative overflow-hidden cursor-pointer select-none"
+    />
+  );
 };

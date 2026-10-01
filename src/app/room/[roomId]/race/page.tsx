@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { CanvasView } from '@/components/CanvasView';
 import { GameHUD } from '@/components/GameHUD';
@@ -11,6 +11,7 @@ import { RemotePlayer } from '@/game/entities/RemotePlayer';
 import { PixiSceneRenderer } from '@/game/renderer/PixiSceneRenderer';
 import { getMultiplayerService } from '@/services/multiplayerSingleton';
 import { PlayerState } from '@/services/IMultiplayerService';
+import { sound } from '@/game/audio/SoundEffects';
 
 export default function RacePage() {
   const params = useParams();
@@ -20,16 +21,35 @@ export default function RacePage() {
   const [countdown, setCountdown] = useState<number | null>(3);
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [progressRatio, setProgressRatio] = useState(0);
+  const [currentX, setCurrentX] = useState(100);
+  const [playerSpeedKmh, setPlayerSpeedKmh] = useState(45);
   const [players, setPlayers] = useState<PlayerState[]>([]);
   const [showResult, setShowResult] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
 
   const gameLoopRef = useRef<GameLoop | null>(null);
   const rendererRef = useRef<PixiSceneRenderer | null>(null);
   const remotePlayersRef = useRef<Map<string, RemotePlayer>>(new Map());
   const inputRef = useRef({ left: false, right: false });
+  const hasFinishedRef = useRef(false);
 
   const playerName =
-    typeof window !== 'undefined' ? sessionStorage.getItem('player_name') || 'Kurir' : 'Kurir';
+    typeof window !== 'undefined'
+      ? sessionStorage.getItem('player_name') || 'Kurir MBG'
+      : 'Kurir MBG';
+
+  const triggerJump = useCallback(() => {
+    if (gameLoopRef.current && gameLoopRef.current.isRunning && gameLoopRef.current.player.isGrounded) {
+      sound.playJump();
+      gameLoopRef.current.player.jump();
+    }
+  }, []);
+
+  const toggleSound = () => {
+    const next = !isMuted;
+    setIsMuted(next);
+    sound.isMuted = next;
+  };
 
   useEffect(() => {
     const service = getMultiplayerService();
@@ -41,33 +61,39 @@ export default function RacePage() {
     service.onPlayerPositionUpdate((id, x, y) => {
       let remote = remotePlayersRef.current.get(id);
       if (!remote) {
-        remote = new RemotePlayer({ id, name: 'Pemain', startX: x, groundY: 400 });
+        remote = new RemotePlayer({ id, name: 'Kurir Lain', startX: x, groundY: 400 });
         remotePlayersRef.current.set(id, remote);
       }
       remote.setTargetPosition(x, y);
     });
 
     service.onPlayerFinish((id, time) => {
-      // Result updated
-      setShowResult(true);
+      // If someone finishes, ensure result can be shown
+      if (hasFinishedRef.current) {
+        setShowResult(true);
+      }
     });
 
     // Countdown sequence (3.. 2.. 1.. GO!)
+    sound.playCountdown(false);
     let count = 3;
     const interval = setInterval(() => {
       count -= 1;
       if (count <= 0) {
         clearInterval(interval);
         setCountdown(null);
+        sound.playCountdown(true);
         gameLoopRef.current?.start();
       } else {
         setCountdown(count);
+        sound.playCountdown(false);
       }
     }, 1000);
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space') {
-        gameLoopRef.current?.player.jump();
+      if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+        e.preventDefault();
+        triggerJump();
       }
       if (e.code === 'KeyA' || e.key === 'ArrowLeft') inputRef.current.left = true;
       if (e.code === 'KeyD' || e.key === 'ArrowRight') inputRef.current.right = true;
@@ -87,20 +113,42 @@ export default function RacePage() {
       window.removeEventListener('keyup', handleKeyUp);
       rendererRef.current?.destroy();
     };
-  }, []);
+  }, [triggerJump]);
 
-  const handleGameReady = (game: GameApp) => {
+  const handleGameReady = useCallback((game: GameApp) => {
     if (!game.app) return;
+
+    let previousPenaltyTimer = 0;
 
     const gameLoop = new GameLoop({
       onTick: (x, ratio, time) => {
         setTimeElapsed(time);
         setProgressRatio(ratio);
+        setCurrentX(x);
+
+        // Sound effect on obstacle collision
+        if (gameLoop.player.speedModifier < 1.0 && previousPenaltyTimer <= 0) {
+          if (gameLoop.player.speedModifier <= 0.3) {
+            sound.playHit();
+          } else {
+            sound.playPuddle();
+          }
+        }
+        previousPenaltyTimer = gameLoop.player.speedModifier < 1.0 ? 1 : 0;
+
+        // Speed calculation in km/h
+        const currentSpeed = (gameLoop.player.baseSpeed + (inputRef.current.right ? 40 : inputRef.current.left ? -40 : 0)) * gameLoop.player.speedModifier;
+        setPlayerSpeedKmh(Math.round(currentSpeed * 0.16));
+
+        // Network sync
         getMultiplayerService().broadcastPosition(x, gameLoop.player.y);
       },
       onFinish: (time) => {
+        hasFinishedRef.current = true;
         getMultiplayerService().broadcastFinish(time);
-        setShowResult(true);
+        setTimeout(() => {
+          setShowResult(true);
+        }, 1200);
       },
     });
 
@@ -111,7 +159,7 @@ export default function RacePage() {
     let lastTime = performance.now();
     game.app.ticker.add(() => {
       const now = performance.now();
-      const delta = (now - lastTime) / 1000;
+      const delta = Math.min(0.1, (now - lastTime) / 1000);
       lastTime = now;
 
       const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1000;
@@ -123,16 +171,21 @@ export default function RacePage() {
 
       renderer.render(remotePlayersRef.current);
     });
-  };
+  }, []);
 
   return (
-    <main className="relative w-screen h-screen overflow-hidden bg-slate-950">
-      <CanvasView onGameReady={handleGameReady} />
+    <main className="relative w-screen h-screen overflow-hidden bg-slate-950 select-none">
+      <CanvasView onGameReady={handleGameReady} onCanvasClick={triggerJump} />
       <GameHUD
         countdown={countdown}
         timeElapsed={timeElapsed}
         progressRatio={progressRatio}
+        currentX={currentX}
+        playerSpeedKmh={playerSpeedKmh}
         playerName={playerName}
+        isMuted={isMuted}
+        onToggleSound={toggleSound}
+        players={players}
       />
       {showResult && (
         <ResultModal
