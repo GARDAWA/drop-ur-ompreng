@@ -13,6 +13,7 @@ export type PlayerListListener = (players: PlayerState[]) => void;
 export type MatchStartListener = () => void;
 export type PositionListener = (playerId: string, x: number, y: number) => void;
 export type FinishListener = (playerId: string, finishTime: number) => void;
+export type ReplayListener = () => void;
 
 export interface IMultiplayerService {
   createRoom(hostName: string): Promise<string>;
@@ -22,10 +23,15 @@ export interface IMultiplayerService {
   startMatch(): void;
   broadcastPosition(x: number, y: number): void;
   broadcastFinish(timeElapsed: number): void;
+  broadcastReplay(): void;
+  resetMatch(): void;
+  getCurrentRoomId(): string | null;
+  getLocalPlayerId(): string;
 
-  onPlayerListUpdate(callback: PlayerListListener): void;
-  onMatchStart(callback: MatchStartListener): void;
-  onPlayerPositionUpdate(callback: PositionListener): void;
-  onPlayerFinish(callback: FinishListener): void;
+  onPlayerListUpdate(callback: PlayerListListener): () => void;
+  onMatchStart(callback: MatchStartListener): () => void;
+  onPlayerPositionUpdate(callback: PositionListener): () => void;
+  onPlayerFinish(callback: FinishListener): () => void;
+  onReplay(callback: ReplayListener): () => void;
   destroy(): void;
 }

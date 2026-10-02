@@ -12,26 +12,44 @@ export default function LobbyPage() {
   const roomId = params.roomId as string;
 
   const [players, setPlayers] = useState<PlayerState[]>([]);
-  const [isReady, setIsReady] = useState(true);
+  const [isReady, setIsReady] = useState(false); // Selalu mulai dengan false saat masuk lobby
   const [copied, setCopied] = useState(false);
   const [playerName, setPlayerName] = useState('');
   const [isMuted, setIsMuted] = useState(false);
 
   useEffect(() => {
-    const storedName = sessionStorage.getItem('player_name') || `Kurir-${Math.floor(100 + Math.random() * 900)}`;
+    const storedName =
+      sessionStorage.getItem('player_name') || `Kurir-${Math.floor(100 + Math.random() * 900)}`;
     setPlayerName(storedName);
     sessionStorage.setItem('player_name', storedName);
 
     const service = getMultiplayerService();
 
-    service.onPlayerListUpdate((list) => {
+    // Pastikan service terhubung ke room ini (misal reload atau direct open)
+    if (!service.getLocalPlayerId() || service.getCurrentRoomId() !== roomId) {
+      service.joinRoom(roomId, storedName);
+    }
+
+    const localId = service.getLocalPlayerId();
+
+    const unsubList = service.onPlayerListUpdate((list) => {
       setPlayers(list);
+      // Sinkronisasi status siap dengan data player lokal
+      const me = list.find((p) => p.id === localId) || list.find((p) => p.name === storedName);
+      if (me !== undefined) {
+        setIsReady(me.isReady);
+      }
     });
 
-    service.onMatchStart(() => {
+    const unsubStart = service.onMatchStart(() => {
       sound.playCountdown(true);
       router.push(`/room/${roomId}/race`);
     });
+
+    return () => {
+      unsubList();
+      unsubStart();
+    };
   }, [roomId, router]);
 
   const toggleReady = () => {
@@ -61,9 +79,12 @@ export default function LobbyPage() {
     sound.isMuted = next;
   };
 
-  // Find if current user is host
-  const myPlayer = players.find((p) => p.name === playerName);
-  const isHost = myPlayer ? myPlayer.isHost : true; // default to true if alone
+  // Identifikasi player lokal dan hak host
+  const service = getMultiplayerService();
+  const localId = service.getLocalPlayerId();
+  const myPlayer =
+    players.find((p) => p.id === localId) || players.find((p) => p.name === playerName);
+  const isHost = myPlayer ? myPlayer.isHost : true;
   const allReady = players.length >= 1 && players.every((p) => p.isReady);
 
   return (
@@ -71,7 +92,7 @@ export default function LobbyPage() {
       {/* Sound toggle floating button */}
       <button
         onClick={toggleSound}
-        className="absolute top-6 right-6 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 rounded-xl text-sm font-bold shadow-lg transition backdrop-blur"
+        className="absolute top-6 right-6 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 rounded-xl text-sm font-bold shadow-lg transition backdrop-blur cursor-pointer"
       >
         {isMuted ? '🔇 Audio Mati' : '🔊 Audio Aktif'}
       </button>
@@ -88,7 +109,7 @@ export default function LobbyPage() {
           <button
             onClick={copyCode}
             title="Klik untuk salin kode room"
-            className="flex items-center gap-2 bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 px-3.5 py-2 rounded-xl text-xs font-mono font-bold text-indigo-300 transition active:scale-95"
+            className="flex items-center gap-2 bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 px-3.5 py-2 rounded-xl text-xs font-mono font-bold text-indigo-300 transition active:scale-95 cursor-pointer"
           >
             <span>{roomId}</span>
             <span>{copied ? '✅ Tersalin!' : '📋 Salin'}</span>
@@ -99,7 +120,7 @@ export default function LobbyPage() {
         <div className="bg-slate-950/60 rounded-2xl p-5 border border-slate-800 mb-6">
           <div className="flex justify-between items-center mb-3">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-              Kurir Siap Antar ({players.length}/4)
+              Kurir Terdaftar ({players.length}/4)
             </span>
             <span className="text-[11px] text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
               ● Room Online
@@ -116,38 +137,41 @@ export default function LobbyPage() {
                     HOST
                   </span>
                 </div>
-                <span className="text-xs font-bold px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  READY
+                <span className="text-xs font-bold px-3 py-1 rounded-lg bg-slate-800 text-slate-400 border border-slate-700">
+                  MENUNGGU
                 </span>
               </div>
             ) : (
-              players.map((p) => (
-                <div
-                  key={p.id}
-                  className="flex justify-between items-center bg-slate-800/40 px-4 py-3 rounded-xl border border-slate-800 transition hover:border-slate-700"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-xl">🛵</span>
-                    <span className="font-bold text-sm text-slate-200">
-                      {p.name} {p.name === playerName ? '(Kamu)' : ''}
-                    </span>
-                    {p.isHost && (
-                      <span className="bg-amber-500/20 text-amber-300 text-[10px] px-2 py-0.5 rounded font-bold border border-amber-500/40">
-                        HOST
-                      </span>
-                    )}
-                  </div>
-                  <span
-                    className={`text-xs font-bold px-3 py-1 rounded-lg ${
-                      p.isReady
-                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                        : 'bg-slate-800 text-slate-400 border border-slate-700'
-                    }`}
+              players.map((p) => {
+                const isMe = p.id === localId || p.name === playerName;
+                return (
+                  <div
+                    key={p.id}
+                    className="flex justify-between items-center bg-slate-800/40 px-4 py-3 rounded-xl border border-slate-800 transition hover:border-slate-700"
                   >
-                    {p.isReady ? 'SIAP!' : 'MENUNGGU'}
-                  </span>
-                </div>
-              ))
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-xl">🛵</span>
+                      <span className="font-bold text-sm text-slate-200">
+                        {p.name} {isMe ? '(Kamu)' : ''}
+                      </span>
+                      {p.isHost && (
+                        <span className="bg-amber-500/20 text-amber-300 text-[10px] px-2 py-0.5 rounded font-bold border border-amber-500/40">
+                          HOST
+                        </span>
+                      )}
+                    </div>
+                    <span
+                      className={`text-xs font-bold px-3 py-1 rounded-lg ${
+                        p.isReady
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          : 'bg-slate-800 text-slate-400 border border-slate-700'
+                      }`}
+                    >
+                      {p.isReady ? 'SIAP! ✅' : 'MENUNGGU'}
+                    </span>
+                  </div>
+                );
+              })
             )}
           </div>
         </div>
@@ -156,13 +180,13 @@ export default function LobbyPage() {
         <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={toggleReady}
-            className={`flex-1 py-3.5 px-4 rounded-xl font-black text-sm uppercase tracking-wider transition active:scale-[0.98] shadow-lg ${
+            className={`flex-1 py-3.5 px-4 rounded-xl font-black text-sm uppercase tracking-wider transition active:scale-[0.98] shadow-lg cursor-pointer ${
               isReady
-                ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
+                ? 'bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40'
                 : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20'
             }`}
           >
-            {isReady ? 'Batalkan Ready' : 'Siap Berangkat! ✅'}
+            {isReady ? 'Batalkan Ready ⏳' : 'Siap Berangkat! (Ready) ✅'}
           </button>
 
           {isHost && (

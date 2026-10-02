@@ -5,6 +5,7 @@ import {
   MatchStartListener,
   PositionListener,
   FinishListener,
+  ReplayListener,
 } from './IMultiplayerService';
 
 /**
@@ -53,20 +54,45 @@ export class SupabaseService implements IMultiplayerService {
     // 2. Update record players/results di database
   }
 
-  public onPlayerListUpdate(callback: PlayerListListener): void {
+  public broadcastReplay(): void {
+    // channel.send({ type: 'broadcast', event: 'replay', payload: {} })
+  }
+
+  public resetMatch(): void {
+    // Reset match state in DB or memory
+  }
+
+  public getCurrentRoomId(): string | null {
+    return null;
+  }
+
+  public getLocalPlayerId(): string {
+    return '';
+  }
+
+  public onPlayerListUpdate(callback: PlayerListListener): () => void {
     // channel.on('presence', { event: 'sync' }, () => { ... callback(...) })
+    return () => {};
   }
 
-  public onMatchStart(callback: MatchStartListener): void {
+  public onMatchStart(callback: MatchStartListener): () => void {
     // channel.on('broadcast', { event: 'start_match' }, () => callback())
+    return () => {};
   }
 
-  public onPlayerPositionUpdate(callback: PositionListener): void {
+  public onPlayerPositionUpdate(callback: PositionListener): () => void {
     // channel.on('broadcast', { event: 'pos' }, ({ payload }) => callback(payload.id, payload.x, payload.y))
+    return () => {};
   }
 
-  public onPlayerFinish(callback: FinishListener): void {
+  public onPlayerFinish(callback: FinishListener): () => void {
     // channel.on('broadcast', { event: 'finish' }, ({ payload }) => callback(payload.id, payload.timeElapsed))
+    return () => {};
+  }
+
+  public onReplay(callback: ReplayListener): () => void {
+    // channel.on('broadcast', { event: 'replay' }, () => callback())
+    return () => {};
   }
 
   public destroy(): void {

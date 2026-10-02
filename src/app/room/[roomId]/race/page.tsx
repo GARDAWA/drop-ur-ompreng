@@ -33,6 +33,7 @@ export default function RacePage() {
   const remotePlayersRef = useRef<Map<string, RemotePlayer>>(new Map());
   const inputRef = useRef({ left: false, right: false });
   const hasFinishedRef = useRef(false);
+  const countdownDoneRef = useRef(false);
 
   const playerName =
     typeof window !== 'undefined'
@@ -55,11 +56,16 @@ export default function RacePage() {
   useEffect(() => {
     const service = getMultiplayerService();
 
-    service.onPlayerListUpdate((list) => {
+    // Pastikan service tersambung ke room ini
+    if (!service.getLocalPlayerId() || service.getCurrentRoomId() !== roomId) {
+      service.joinRoom(roomId, playerName);
+    }
+
+    const unsubList = service.onPlayerListUpdate((list) => {
       setPlayers(list);
     });
 
-    service.onPlayerPositionUpdate((id, x, y) => {
+    const unsubPos = service.onPlayerPositionUpdate((id, x, y) => {
       let remote = remotePlayersRef.current.get(id);
       if (!remote) {
         remote = new RemotePlayer({ id, name: 'Kurir Lain', startX: x, groundY: 400 });
@@ -73,10 +79,15 @@ export default function RacePage() {
       );
     });
 
-    service.onPlayerFinish((id, time) => {
+    const unsubFinish = service.onPlayerFinish((id, time) => {
       if (hasFinishedRef.current) {
         setShowResult(true);
       }
+    });
+
+    // When replay is broadcasted by any player, navigate back to lobby simultaneously
+    const unsubReplay = service.onReplay(() => {
+      router.push(`/room/${roomId}/lobby`);
     });
 
     // Countdown sequence (3.. 2.. 1.. GO!)
@@ -88,7 +99,10 @@ export default function RacePage() {
         clearInterval(interval);
         setCountdown(null);
         sound.playCountdown(true);
-        gameLoopRef.current?.start();
+        countdownDoneRef.current = true;
+        if (gameLoopRef.current && !gameLoopRef.current.isRunning) {
+          gameLoopRef.current.start();
+        }
       } else {
         setCountdown(count);
         sound.playCountdown(false);
@@ -114,11 +128,15 @@ export default function RacePage() {
 
     return () => {
       clearInterval(interval);
+      unsubList();
+      unsubPos();
+      unsubFinish();
+      unsubReplay();
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       rendererRef.current?.destroy();
     };
-  }, [triggerJump]);
+  }, [roomId, router, triggerJump, playerName]);
 
   const handleGameReady = useCallback((game: GameApp) => {
     if (!game.app) return;
@@ -189,6 +207,12 @@ export default function RacePage() {
     });
 
     gameLoopRef.current = gameLoop;
+
+    // Jika countdown selesai sebelum renderer siap, langsung start gameLoop
+    if (countdownDoneRef.current && !gameLoop.isRunning) {
+      gameLoop.start();
+    }
+
     const renderer = new PixiSceneRenderer(game.app, gameLoop);
     rendererRef.current = renderer;
 
@@ -209,6 +233,17 @@ export default function RacePage() {
     });
   }, []);
 
+  const handlePlayAgain = () => {
+    // Broadcast replay to all tabs in the room
+    getMultiplayerService().broadcastReplay();
+    router.push(`/room/${roomId}/lobby`);
+  };
+
+  const handleExit = () => {
+    getMultiplayerService().leaveRoom();
+    router.push('/');
+  };
+
   return (
     <main className="relative w-screen h-screen overflow-hidden bg-slate-950 select-none">
       <CanvasView onGameReady={handleGameReady} onCanvasClick={triggerJump} />
@@ -227,8 +262,8 @@ export default function RacePage() {
       {showResult && (
         <ResultModal
           players={players}
-          onPlayAgain={() => router.push(`/room/${roomId}/lobby`)}
-          onExit={() => router.push('/')}
+          onPlayAgain={handlePlayAgain}
+          onExit={handleExit}
         />
       )}
     </main>

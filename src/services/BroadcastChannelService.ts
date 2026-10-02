@@ -5,6 +5,7 @@ import {
   MatchStartListener,
   PositionListener,
   FinishListener,
+  ReplayListener,
 } from './IMultiplayerService';
 
 type MessagePayload =
@@ -14,10 +15,12 @@ type MessagePayload =
   | { type: 'MATCH_START' }
   | { type: 'POSITION'; playerId: string; x: number; y: number }
   | { type: 'FINISH'; playerId: string; finishTime: number }
+  | { type: 'REPLAY' }
   | { type: 'LEAVE'; playerId: string };
 
 export class BroadcastChannelService implements IMultiplayerService {
   private channel: BroadcastChannel | null = null;
+  private currentRoomId: string | null = null;
   private localPlayerId: string = '';
   private players: Map<string, PlayerState> = new Map();
 
@@ -25,8 +28,17 @@ export class BroadcastChannelService implements IMultiplayerService {
   private matchStartListeners: Set<MatchStartListener> = new Set();
   private positionListeners: Set<PositionListener> = new Set();
   private finishListeners: Set<FinishListener> = new Set();
+  private replayListeners: Set<ReplayListener> = new Set();
 
   private throttleTimer: number | null = null;
+
+  public getCurrentRoomId(): string | null {
+    return this.currentRoomId;
+  }
+
+  public getLocalPlayerId(): string {
+    return this.localPlayerId;
+  }
 
   public async createRoom(hostName: string): Promise<string> {
     const code = 'MBG-' + Math.floor(100 + Math.random() * 900);
@@ -41,16 +53,18 @@ export class BroadcastChannelService implements IMultiplayerService {
 
   private async connectChannel(roomId: string, playerName: string, isHost: boolean): Promise<void> {
     this.destroy();
+    this.currentRoomId = roomId;
     this.localPlayerId = 'p_' + Math.random().toString(36).substring(2, 9);
     if (typeof BroadcastChannel !== 'undefined') {
       this.channel = new BroadcastChannel(`drop_embege_room_${roomId}`);
     }
 
+    // Both host and joiner start with isReady = false in lobby
     const localPlayer: PlayerState = {
       id: this.localPlayerId,
       name: playerName,
       isHost,
-      isReady: isHost,
+      isReady: false,
       x: 100,
       y: 400,
       finished: false,
@@ -113,6 +127,11 @@ export class BroadcastChannelService implements IMultiplayerService {
       }
       case 'POSITION': {
         if (msg.playerId !== this.localPlayerId) {
+          const remote = this.players.get(msg.playerId);
+          if (remote) {
+            remote.x = msg.x;
+            remote.y = msg.y;
+          }
           this.positionListeners.forEach((cb) => cb(msg.playerId, msg.x, msg.y));
         }
         break;
@@ -127,6 +146,11 @@ export class BroadcastChannelService implements IMultiplayerService {
         this.notifyPlayerList();
         break;
       }
+      case 'REPLAY': {
+        this.resetMatch();
+        this.replayListeners.forEach((cb) => cb());
+        break;
+      }
       case 'LEAVE': {
         this.players.delete(msg.playerId);
         this.notifyPlayerList();
@@ -139,6 +163,7 @@ export class BroadcastChannelService implements IMultiplayerService {
     if (this.channel && this.localPlayerId) {
       this.channel.postMessage({ type: 'LEAVE', playerId: this.localPlayerId });
     }
+    this.currentRoomId = null;
     this.destroy();
   }
 
@@ -192,21 +217,57 @@ export class BroadcastChannelService implements IMultiplayerService {
     this.notifyPlayerList();
   }
 
-  public onPlayerListUpdate(callback: PlayerListListener): void {
+  public broadcastReplay(): void {
+    this.resetMatch();
+    this.channel?.postMessage({ type: 'REPLAY' });
+    this.replayListeners.forEach((cb) => cb());
+  }
+
+  public resetMatch(): void {
+    for (const p of this.players.values()) {
+      p.finished = false;
+      p.finishTime = undefined;
+      p.isReady = false;
+      p.x = 100;
+      p.y = 400;
+    }
+    this.notifyPlayerList();
+  }
+
+  public onPlayerListUpdate(callback: PlayerListListener): () => void {
     this.playerListListeners.add(callback);
     callback(Array.from(this.players.values()));
+    return () => {
+      this.playerListListeners.delete(callback);
+    };
   }
 
-  public onMatchStart(callback: MatchStartListener): void {
+  public onMatchStart(callback: MatchStartListener): () => void {
     this.matchStartListeners.add(callback);
+    return () => {
+      this.matchStartListeners.delete(callback);
+    };
   }
 
-  public onPlayerPositionUpdate(callback: PositionListener): void {
+  public onPlayerPositionUpdate(callback: PositionListener): () => void {
     this.positionListeners.add(callback);
+    return () => {
+      this.positionListeners.delete(callback);
+    };
   }
 
-  public onPlayerFinish(callback: FinishListener): void {
+  public onPlayerFinish(callback: FinishListener): () => void {
     this.finishListeners.add(callback);
+    return () => {
+      this.finishListeners.delete(callback);
+    };
+  }
+
+  public onReplay(callback: ReplayListener): () => void {
+    this.replayListeners.add(callback);
+    return () => {
+      this.replayListeners.delete(callback);
+    };
   }
 
   private notifyPlayerList(): void {
@@ -227,5 +288,6 @@ export class BroadcastChannelService implements IMultiplayerService {
     this.matchStartListeners.clear();
     this.positionListeners.clear();
     this.finishListeners.clear();
+    this.replayListeners.clear();
   }
 }
