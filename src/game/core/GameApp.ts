@@ -8,7 +8,7 @@ export class GameApp {
     const app = new Application();
     await app.init({
       resizeTo: container,
-      backgroundColor: 0x1e1e2f,
+      backgroundColor: 0x38bdf8,
       resolution: typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1,
       autoDensity: true,
     });

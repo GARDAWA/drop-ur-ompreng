@@ -36,10 +36,14 @@ export default function RacePage() {
   const hasFinishedRef = useRef(false);
   const countdownDoneRef = useRef(false);
 
-  const playerName =
-    typeof window !== 'undefined'
-      ? sessionStorage.getItem('player_name') || 'Kurir MBG'
-      : 'Kurir MBG';
+  const [playerName, setPlayerName] = useState('Kurir MBG');
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem('player_name');
+    if (stored) {
+      setPlayerName(stored);
+    }
+  }, []);
 
   const triggerJump = useCallback(() => {
     if (
