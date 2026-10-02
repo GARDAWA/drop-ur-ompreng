@@ -14,6 +14,7 @@ interface GameHUDProps {
   onToggleSound: () => void;
   players: PlayerState[];
   approachingObstacleWarning?: string | null;
+  isFinished?: boolean;
 }
 
 export const GameHUD: React.FC<GameHUDProps> = ({
@@ -27,10 +28,15 @@ export const GameHUD: React.FC<GameHUDProps> = ({
   onToggleSound,
   players,
   approachingObstacleWarning,
+  isFinished = false,
 }) => {
   // Start is at 100, Finish is at 5800
-  const normalizedPercent = Math.max(0, Math.min(100, ((currentX - 100) / 5700) * 100));
-  const distanceLeftMeters = Math.max(0, Math.round((5800 - currentX) / 10));
+  const normalizedPercent = isFinished
+    ? 100
+    : Math.max(0, Math.min(100, ((currentX - 100) / 5700) * 100));
+  const distanceLeftMeters = isFinished
+    ? 0
+    : Math.max(0, Math.round((5800 - currentX) / 10));
 
   return (
     <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-4 sm:p-6 z-20 select-none">
@@ -48,7 +54,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
                 ⏱ {timeElapsed.toFixed(1)}s
               </span>
               <span className="bg-amber-500/20 border border-amber-500/40 text-amber-300 px-3 py-1 rounded-xl text-xs font-mono font-bold">
-                {distanceLeftMeters} m ke Sekolah
+                {isFinished ? 'SELESAI (0m)' : `${distanceLeftMeters} m ke Sekolah`}
               </span>
               <span className="text-xs text-slate-400 font-mono">
                 {normalizedPercent.toFixed(0)}%
@@ -79,7 +85,9 @@ export const GameHUD: React.FC<GameHUDProps> = ({
             {players
               .filter((p) => p.name !== playerName)
               .map((p) => {
-                const remotePercent = Math.max(0, Math.min(100, ((p.x - 100) / 5700) * 100));
+                const remotePercent = p.finished
+                  ? 100
+                  : Math.max(0, Math.min(100, ((p.x - 100) / 5700) * 100));
                 return (
                   <div
                     key={p.id}
@@ -113,8 +121,15 @@ export const GameHUD: React.FC<GameHUDProps> = ({
           </div>
         </div>
 
+        {/* Celebratory finish banner */}
+        {isFinished && (
+          <div className="self-center bg-gradient-to-r from-amber-500 via-orange-500 to-emerald-400 text-slate-950 px-6 py-2 rounded-full text-xs sm:text-sm font-black uppercase tracking-wider shadow-2xl animate-bounce flex items-center gap-2 border border-amber-300">
+            <span>🏆</span> BALAPAN SELESAI! MBG TELAH SAMPAI DI SEKOLAH! 🏁
+          </div>
+        )}
+
         {/* Warning notification banner if approaching high obstacle */}
-        {approachingObstacleWarning && (
+        {!isFinished && approachingObstacleWarning && (
           <div className="self-center bg-rose-600/90 text-white border border-rose-400/80 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider shadow-lg animate-pulse flex items-center gap-1.5">
             <span>⚠️</span> {approachingObstacleWarning}
           </div>
@@ -142,7 +157,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
           <div className="text-center">
             <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Kecepatan</div>
             <div className="text-xl sm:text-2xl font-black font-mono text-amber-400">
-              {playerSpeedKmh} <span className="text-xs font-normal text-slate-300">km/h</span>
+              {isFinished ? 0 : playerSpeedKmh} <span className="text-xs font-normal text-slate-300">km/h</span>
             </div>
           </div>
           <div className="h-8 w-px bg-slate-800"></div>

@@ -25,6 +25,7 @@ export default function RacePage() {
   const [playerSpeedKmh, setPlayerSpeedKmh] = useState(45);
   const [players, setPlayers] = useState<PlayerState[]>([]);
   const [showResult, setShowResult] = useState(false);
+  const [isMatchFinished, setIsMatchFinished] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [obstacleWarning, setObstacleWarning] = useState<string | null>(null);
 
@@ -41,7 +42,12 @@ export default function RacePage() {
       : 'Kurir MBG';
 
   const triggerJump = useCallback(() => {
-    if (gameLoopRef.current && gameLoopRef.current.isRunning && gameLoopRef.current.player.isGrounded) {
+    if (
+      gameLoopRef.current &&
+      gameLoopRef.current.isRunning &&
+      !gameLoopRef.current.isFinished &&
+      gameLoopRef.current.player.isGrounded
+    ) {
       sound.playJump();
       gameLoopRef.current.player.jump();
     }
@@ -79,8 +85,21 @@ export default function RacePage() {
       );
     });
 
+    // Ketika salah satu kurir di room finish, match otomatis selesai untuk semua kurir!
     const unsubFinish = service.onPlayerFinish((id, time) => {
-      if (hasFinishedRef.current) {
+      setIsMatchFinished(true);
+      if (!hasFinishedRef.current) {
+        hasFinishedRef.current = true;
+        if (gameLoopRef.current) {
+          gameLoopRef.current.isRunning = false;
+          gameLoopRef.current.isFinished = true;
+        }
+        setPlayerSpeedKmh(0);
+        sound.playWin();
+        setTimeout(() => {
+          setShowResult(true);
+        }, 1200);
+      } else {
         setShowResult(true);
       }
     });
@@ -199,6 +218,9 @@ export default function RacePage() {
       },
       onFinish: (time) => {
         hasFinishedRef.current = true;
+        setIsMatchFinished(true);
+        setPlayerSpeedKmh(0);
+        sound.playWin();
         getMultiplayerService().broadcastFinish(time);
         setTimeout(() => {
           setShowResult(true);
@@ -258,6 +280,7 @@ export default function RacePage() {
         onToggleSound={toggleSound}
         players={players}
         approachingObstacleWarning={obstacleWarning}
+        isFinished={isMatchFinished}
       />
       {showResult && (
         <ResultModal
