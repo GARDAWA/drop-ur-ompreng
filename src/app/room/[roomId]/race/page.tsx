@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { CanvasView } from '@/components/CanvasView';
 import { GameHUD } from '@/components/GameHUD';
 import { ResultModal } from '@/components/ResultModal';
+import { PauseModal } from '@/components/PauseModal';
 import { GameApp } from '@/game/core/GameApp';
 import { GameLoop } from '@/game/core/GameLoop';
 import { RemotePlayer } from '@/game/entities/RemotePlayer';
@@ -27,10 +28,14 @@ export default function RacePage() {
   const [showResult, setShowResult] = useState(false);
   const [isMatchFinished, setIsMatchFinished] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [obstacleWarning, setObstacleWarning] = useState<string | null>(null);
 
   const gameLoopRef = useRef<GameLoop | null>(null);
   const rendererRef = useRef<PixiSceneRenderer | null>(null);
+  const gameAppRef = useRef<GameApp | null>(null);
+  const tickerCallbackRef = useRef<(() => void) | null>(null);
+  const isPausedRef = useRef(false);
   const remotePlayersRef = useRef<Map<string, RemotePlayer>>(new Map());
   const inputRef = useRef({ left: false, right: false });
   const hasFinishedRef = useRef(false);
@@ -62,6 +67,15 @@ export default function RacePage() {
     setIsMuted(next);
     sound.isMuted = next;
   };
+
+  const togglePause = useCallback(() => {
+    if (hasFinishedRef.current || countdown !== null) return;
+    setIsPaused((prev) => {
+      const next = !prev;
+      isPausedRef.current = next;
+      return next;
+    });
+  }, [countdown]);
 
   useEffect(() => {
     const service = getMultiplayerService();
@@ -133,6 +147,11 @@ export default function RacePage() {
     }, 1000);
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Escape' || e.code === 'KeyP') {
+        e.preventDefault();
+        togglePause();
+        return;
+      }
       if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
         e.preventDefault();
         triggerJump();
@@ -157,12 +176,16 @@ export default function RacePage() {
       unsubReplay();
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      if (gameAppRef.current?.app?.ticker && tickerCallbackRef.current) {
+        gameAppRef.current.app.ticker.remove(tickerCallbackRef.current);
+      }
       rendererRef.current?.destroy();
     };
-  }, [roomId, router, triggerJump, playerName]);
+  }, [roomId, router, triggerJump, playerName, togglePause]);
 
   const handleGameReady = useCallback((game: GameApp) => {
     if (!game.app) return;
+    gameAppRef.current = game;
 
     const gameLoop = new GameLoop({
       onTick: (x, ratio, time, hitType) => {
@@ -170,8 +193,9 @@ export default function RacePage() {
         setProgressRatio(ratio);
         setCurrentX(x);
 
-        // Sound effect based on hit obstacle
+        // Sound effect & VFX based on hit obstacle
         if (hitType) {
+          rendererRef.current?.spawnHitVfx(hitType, x, gameLoop.player.y);
           switch (hitType) {
             case 'chicken':
               sound.playChicken();
@@ -243,20 +267,25 @@ export default function RacePage() {
     rendererRef.current = renderer;
 
     let lastTime = performance.now();
-    game.app.ticker.add(() => {
+    const tickerCallback = () => {
       const now = performance.now();
       const delta = Math.min(0.1, (now - lastTime) / 1000);
       lastTime = now;
 
-      const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1000;
-      gameLoop.update(delta, inputRef.current, viewportWidth);
+      if (!isPausedRef.current) {
+        const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1000;
+        gameLoop.update(delta, inputRef.current, viewportWidth);
 
-      for (const remote of remotePlayersRef.current.values()) {
-        remote.update(delta);
+        for (const remote of remotePlayersRef.current.values()) {
+          remote.update(delta);
+        }
       }
 
-      renderer.render(remotePlayersRef.current);
-    });
+      renderer.render(remotePlayersRef.current, delta);
+    };
+
+    game.app.ticker.add(tickerCallback);
+    tickerCallbackRef.current = tickerCallback;
   }, []);
 
   const handlePlayAgain = () => {
@@ -268,6 +297,11 @@ export default function RacePage() {
   const handleExit = () => {
     getMultiplayerService().leaveRoom();
     router.push('/');
+  };
+
+  const handleResume = () => {
+    setIsPaused(false);
+    isPausedRef.current = false;
   };
 
   return (
@@ -282,10 +316,21 @@ export default function RacePage() {
         playerName={playerName}
         isMuted={isMuted}
         onToggleSound={toggleSound}
+        onTogglePause={togglePause}
         players={players}
         approachingObstacleWarning={obstacleWarning}
         isFinished={isMatchFinished}
+        localPlayerId={getMultiplayerService().getLocalPlayerId()}
       />
+      {isPaused && (
+        <PauseModal
+          onResume={handleResume}
+          onExitLobby={handlePlayAgain}
+          onExitHome={handleExit}
+          isMuted={isMuted}
+          onToggleSound={toggleSound}
+        />
+      )}
       {showResult && (
         <ResultModal
           players={players}

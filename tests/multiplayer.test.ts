@@ -102,4 +102,19 @@ describe('BroadcastChannelService Room & Ready State Management', () => {
     // Should NOT increase because it was unsubscribed
     expect(callCount).toBe(2);
   });
+
+  it('assigns unique player IDs even if two players share identical names', async () => {
+    const s1 = new BroadcastChannelService();
+    const s2 = new BroadcastChannelService();
+    try {
+      await s1.createRoom('Budi');
+      const roomId = s1.getCurrentRoomId()!;
+      await s2.joinRoom(roomId, 'Budi');
+
+      expect(s1.getLocalPlayerId()).not.toBe(s2.getLocalPlayerId());
+    } finally {
+      s1.destroy();
+      s2.destroy();
+    }
+  });
 });

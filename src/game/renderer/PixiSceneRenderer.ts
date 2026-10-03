@@ -295,8 +295,8 @@ export class PixiSceneRenderer {
       roadG.rect(x + 2, groundY + 172, 10, 2).fill(0x475569);
     }
 
-    // Lush Fresh Green Roadside Grass Verge (y = groundY + 180 to 720)
-    roadG.rect(0, groundY + 180, 7600, 180).fill(0x15803d);
+    // Lush Fresh Green Roadside Grass Verge (Extended to 1000px height for ultra-wide and tall 4K/1080p displays)
+    roadG.rect(0, groundY + 180, 7600, 1000).fill(0x15803d);
     for (let x = 0; x < 7600; x += 45) {
       roadG.rect(x, groundY + 178, 6, 6).fill(0x22c55e);
       roadG.rect(x + 12, groundY + 177, 5, 7).fill(0x16a34a);
@@ -346,6 +346,65 @@ export class PixiSceneRenderer {
     drawRoadStencil(3500, 'HATI-HATI JALUR CEPAT 60 KM/H', '⚠️');
     drawRoadStencil(5050, 'ZONA SELAMAT SEKOLAH 20 KM/H', '🏫');
     drawRoadStencil(5740, 'GARIS FINISH SDN 01 MERDEKA', '🏁');
+
+    // --- 5. GLORIOUS 3D CHECKERED FINISH ARCH AT SCHOOL GATE (x=5800) ---
+    const archG = new Graphics();
+    const archX = 5800;
+
+    // Left & Right Checkered Truss Pillars
+    const pillarPositions = [archX - 60, archX + 100];
+    pillarPositions.forEach((px) => {
+      // Concrete Pedestal
+      archG.rect(px - 14, groundY - 14, 28, 14).fill(0x334155);
+      archG.rect(px - 10, groundY - 20, 20, 6).fill(0x64748b);
+
+      // Checkered Steel Pillar (240px tall)
+      const pillarH = 240;
+      archG.rect(px - 8, groundY - 20 - pillarH, 16, pillarH).fill(0x0f172a);
+      for (let py = groundY - 20 - pillarH; py < groundY - 20; py += 16) {
+        const isWhite = Math.floor((py - (groundY - 20 - pillarH)) / 16) % 2 === 0;
+        archG.rect(px - 7, py, 14, 15).fill(isWhite ? 0xf8fafc : 0x090d16);
+      }
+      // Top Yellow Warning Beacon Lamp
+      archG.circle(px, groundY - 25 - pillarH, 7).fill(0xfacc15);
+      archG.circle(px, groundY - 25 - pillarH, 4).fill(0xffffff);
+    });
+
+    // Overhead Arch Truss Spanning Road
+    const archTopY = groundY - 260;
+    archG.rect(archX - 70, archTopY, 180, 36).fill(0x0f172a);
+    // Yellow & Black hazard border stripes
+    for (let hx = archX - 70; hx < archX + 110; hx += 16) {
+      const isYellow = Math.floor((hx - (archX - 70)) / 16) % 2 === 0;
+      archG.rect(hx, archTopY, 15, 6).fill(isYellow ? 0xfacc15 : 0x090d16);
+      archG.rect(hx, archTopY + 30, 15, 6).fill(isYellow ? 0xfacc15 : 0x090d16);
+    }
+    // Bold Finish Banner Center Face
+    archG.rect(archX - 60, archTopY + 6, 160, 24).fill(0xdc2626);
+
+    this.roadLayer.addChild(archG);
+
+    // Arch Banner Text
+    const archLabel = new Text({
+      text: '🏁 FINISH - SDN 01 MERDEKA 🏁',
+      style: new TextStyle({
+        fontSize: 10,
+        fontWeight: '900',
+        fill: '#ffffff',
+        fontFamily: 'Inter, Arial, sans-serif',
+        letterSpacing: 1.5,
+        dropShadow: {
+          alpha: 0.9,
+          angle: Math.PI / 4,
+          blur: 2,
+          color: '#000000',
+          distance: 1,
+        },
+      }),
+    });
+    archLabel.anchor.set(0.5, 0.5);
+    archLabel.position.set(archX + 20, archTopY + 18);
+    this.roadLayer.addChild(archLabel);
   }
 
   private setupObstacleSprites(): void {
@@ -398,14 +457,75 @@ export class PixiSceneRenderer {
     }
   }
 
-  public render(remotePlayers: Map<string, RemotePlayer>): void {
-    const delta = 0.016;
+  public spawnHitVfx(type: string, x: number, y: number): void {
+    if (type === 'puddle') {
+      // Muddy splash particles
+      for (let i = 0; i < 20; i++) {
+        this.particles.push({
+          x: x + 25 + (Math.random() * 20 - 10),
+          y: y - 4,
+          vx: (Math.random() - 0.5) * 220,
+          vy: -(80 + Math.random() * 180),
+          size: 3 + Math.random() * 4,
+          alpha: 0.85,
+          color: Math.random() > 0.4 ? 0x78350f : 0x38bdf8,
+          life: 0.5,
+        });
+      }
+    } else if (type === 'chicken') {
+      // Feathers scattering
+      for (let i = 0; i < 18; i++) {
+        this.particles.push({
+          x: x + 15,
+          y: y - 16,
+          vx: (Math.random() - 0.5) * 180,
+          vy: -(60 + Math.random() * 140),
+          size: 3 + Math.random() * 3,
+          alpha: 0.95,
+          color: Math.random() > 0.5 ? 0xffffff : 0xb45309,
+          life: 0.8,
+        });
+      }
+    } else if (type === 'crate') {
+      // Wood splinter chunks
+      for (let i = 0; i < 20; i++) {
+        this.particles.push({
+          x: x + 18,
+          y: y - 20,
+          vx: (Math.random() - 0.5) * 240,
+          vy: -(70 + Math.random() * 160),
+          size: 3 + Math.random() * 4,
+          alpha: 0.9,
+          color: 0x92400e,
+          life: 0.6,
+        });
+      }
+    } else {
+      // Sparks & dust (cart, rock, speedbump)
+      for (let i = 0; i < 24; i++) {
+        this.particles.push({
+          x: x + 18,
+          y: y - 10,
+          vx: (Math.random() - 0.5) * 260,
+          vy: -(90 + Math.random() * 190),
+          size: 2.5 + Math.random() * 3.5,
+          alpha: 1.0,
+          color: Math.random() > 0.3 ? 0xf59e0b : 0xef4444,
+          life: 0.45,
+        });
+      }
+    }
+  }
+
+  public render(remotePlayers: Map<string, RemotePlayer>, deltaSeconds: number = 0.016): void {
+    const delta = Math.max(0.001, Math.min(0.1, deltaSeconds));
     this.animTimer += delta;
     const camX = this.gameLoop.camera.offsetX;
     const player = this.gameLoop.player;
 
-    // 1. Move camera viewport
-    this.stageContainer.x = -camX;
+    // 1. Move camera viewport with screen shake
+    this.stageContainer.x = -camX + this.gameLoop.camera.shakeX;
+    this.stageContainer.y = this.gameLoop.camera.shakeY;
 
     // 2. Parallax effect for sky and mountains
     this.skyLayer.x = camX * 0.75; // Slow sky scroll
@@ -459,15 +579,16 @@ export class PixiSceneRenderer {
       });
     }
 
-    // 5. Render Remote Players (Ghosts with distinct custom palettes)
+    // 5. Render Remote Players (Ghosts with deterministic distinct palettes)
     const remotePalette = ['blue', 'red', 'purple'] as const;
-    let colorIdx = 0;
 
     for (const [id, remote] of remotePlayers) {
       let entry = this.remoteSprites.get(id);
       if (!entry) {
-        const tex = AssetFactory.getCourierTexture(remotePalette[colorIdx % 3]);
-        colorIdx++;
+        // Deterministic palette choice by hashing player ID so distinct players get distinct colors
+        const charSum = id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+        const color = remotePalette[charSum % remotePalette.length];
+        const tex = AssetFactory.getCourierTexture(color);
         const sprite = new Sprite(tex);
         sprite.anchor.set(0.5, 0.92);
         this.entitiesLayer.addChild(sprite);

@@ -79,6 +79,12 @@ export default function LobbyPage() {
     sound.isMuted = next;
   };
 
+  const handleLeaveRoom = () => {
+    sound.playJump();
+    getMultiplayerService().leaveRoom();
+    router.push('/');
+  };
+
   // Identifikasi player lokal dan hak host
   const service = getMultiplayerService();
   const localId = service.getLocalPlayerId();
@@ -89,10 +95,19 @@ export default function LobbyPage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white relative">
-      {/* Sound toggle floating button */}
+      {/* Top action buttons */}
+      <div className="absolute top-6 left-6 z-20">
+        <button
+          onClick={handleLeaveRoom}
+          className="bg-slate-800/80 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 rounded-xl text-sm font-bold shadow-lg transition backdrop-blur cursor-pointer text-slate-300 hover:text-white flex items-center gap-1.5"
+        >
+          <span>←</span> Menu Utama
+        </button>
+      </div>
+
       <button
         onClick={toggleSound}
-        className="absolute top-6 right-6 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 rounded-xl text-sm font-bold shadow-lg transition backdrop-blur cursor-pointer"
+        className="absolute top-6 right-6 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 rounded-xl text-sm font-bold shadow-lg transition backdrop-blur cursor-pointer z-20"
       >
         {isMuted ? '🔇 Audio Mati' : '🔊 Audio Aktif'}
       </button>

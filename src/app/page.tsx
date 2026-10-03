@@ -29,16 +29,24 @@ export default function HomePage() {
 
   const handleJoin = async () => {
     sound.playJump();
-    if (!roomCode.trim()) {
-      setError('Masukkan Room Code (contoh: MBG-123)!');
+    const raw = roomCode.trim();
+    if (!raw) {
+      setError('Masukkan Kode Room (contoh: MBG-123 atau cukup ketik 123)!');
       return;
     }
+    // Auto-prefix if user typed only the 3-4 digits
+    const formattedCode = /^\d{3,4}$/.test(raw) ? `MBG-${raw}` : raw.toUpperCase();
+
+    if (!/^MBG-\d{3,4}$/.test(formattedCode)) {
+      setError('Format kode salah! Contoh kode yang benar: MBG-123 (atau ketik 123 saja).');
+      return;
+    }
+
     const finalName = name.trim() || `Kurir-${Math.floor(100 + Math.random() * 900)}`;
-    const code = roomCode.trim().toUpperCase();
     const service = getMultiplayerService();
-    await service.joinRoom(code, finalName);
+    await service.joinRoom(formattedCode, finalName);
     sessionStorage.setItem('player_name', finalName);
-    router.push(`/room/${code}/lobby`);
+    router.push(`/room/${formattedCode}/lobby`);
   };
 
   return (

@@ -27,6 +27,8 @@ export class Player {
   public groundY: number;
   public speedModifier: number = 1.0;
   private penaltyTimer: number = 0;
+  private jumpBufferTimer: number = 0;
+  private coyoteTimer: number = 0;
 
   constructor(config: PlayerConfig) {
     this.x = config.startX;
@@ -38,15 +40,26 @@ export class Player {
   }
 
   public jump(): void {
-    if (this.isGrounded) {
+    if (this.isGrounded || this.coyoteTimer > 0) {
       this.velocityY = this.jumpVelocity;
       this.isGrounded = false;
+      this.coyoteTimer = 0;
+      this.jumpBufferTimer = 0;
+    } else {
+      // Buffer the jump input for up to 150ms
+      this.jumpBufferTimer = 0.15;
     }
   }
 
   public applyPenalty(factor: number, durationSeconds: number): void {
-    this.speedModifier = factor;
-    this.penaltyTimer = durationSeconds;
+    if (this.penaltyTimer > 0) {
+      // Prevent a weaker penalty from speeding up an already heavily penalized player
+      this.speedModifier = Math.min(this.speedModifier, factor);
+      this.penaltyTimer = Math.max(this.penaltyTimer, durationSeconds);
+    } else {
+      this.speedModifier = factor;
+      this.penaltyTimer = durationSeconds;
+    }
   }
 
   public update(deltaSeconds: number, input: InputState): void {
@@ -55,6 +68,16 @@ export class Player {
       if (this.penaltyTimer <= 0) {
         this.speedModifier = 1.0;
       }
+    }
+
+    if (this.jumpBufferTimer > 0) {
+      this.jumpBufferTimer -= deltaSeconds;
+    }
+
+    if (this.isGrounded) {
+      this.coyoteTimer = 0.08;
+    } else if (this.coyoteTimer > 0) {
+      this.coyoteTimer -= deltaSeconds;
     }
 
     let nudge = 0;
@@ -72,6 +95,11 @@ export class Player {
         this.y = this.groundY;
         this.velocityY = 0;
         this.isGrounded = true;
+
+        // Check if there was a buffered jump input
+        if (this.jumpBufferTimer > 0) {
+          this.jump();
+        }
       }
     }
   }

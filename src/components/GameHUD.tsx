@@ -12,9 +12,11 @@ interface GameHUDProps {
   playerName: string;
   isMuted: boolean;
   onToggleSound: () => void;
+  onTogglePause?: () => void;
   players: PlayerState[];
   approachingObstacleWarning?: string | null;
   isFinished?: boolean;
+  localPlayerId?: string;
 }
 
 export const GameHUD: React.FC<GameHUDProps> = ({
@@ -26,9 +28,11 @@ export const GameHUD: React.FC<GameHUDProps> = ({
   playerName,
   isMuted,
   onToggleSound,
+  onTogglePause,
   players,
   approachingObstacleWarning,
   isFinished = false,
+  localPlayerId,
 }) => {
   // Start is at 100, Finish is at 5800
   const normalizedPercent = isFinished
@@ -83,7 +87,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
 
             {/* Remote Players Markers */}
             {players
-              .filter((p) => p.name !== playerName)
+              .filter((p) => (localPlayerId ? p.id !== localPlayerId : p.name !== playerName))
               .map((p) => {
                 const remotePercent = p.finished
                   ? 100
@@ -172,10 +176,20 @@ export const GameHUD: React.FC<GameHUDProps> = ({
         {/* Instructions & Sound toggle */}
         <div className="flex items-center gap-2">
           <div className="hidden sm:block bg-slate-950/85 border border-slate-700 px-3.5 py-2.5 rounded-xl text-xs text-slate-300 font-medium backdrop-blur shadow">
-            <kbd className="bg-slate-800 border border-slate-700 text-amber-300 px-2 py-0.5 rounded font-mono font-bold">SPACE</kbd> / Klik Layar = Lompat
+            <kbd className="bg-slate-800 border border-slate-700 text-amber-300 px-2 py-0.5 rounded font-mono font-bold">SPACE</kbd> / Klik = Lompat • <kbd className="bg-slate-800 border border-slate-700 text-amber-300 px-2 py-0.5 rounded font-mono font-bold">ESC</kbd> = Pause
           </div>
+          {onTogglePause && !isFinished && (
+            <button
+              onClick={onTogglePause}
+              title="Pause Permainan (ESC)"
+              className="pointer-events-auto bg-slate-900/90 hover:bg-slate-800 border border-slate-700 px-3.5 py-3 rounded-2xl text-xs font-bold text-slate-200 transition active:scale-95 shadow-xl backdrop-blur cursor-pointer"
+            >
+              ⏸️
+            </button>
+          )}
           <button
             onClick={onToggleSound}
+            title={isMuted ? 'Nyalakan Audio' : 'Matikan Audio'}
             className="pointer-events-auto bg-slate-900/90 hover:bg-slate-800 border border-slate-700 px-4 py-3 rounded-2xl text-xs font-bold text-slate-200 transition active:scale-95 shadow-xl backdrop-blur cursor-pointer"
           >
             {isMuted ? '🔇' : '🔊'}

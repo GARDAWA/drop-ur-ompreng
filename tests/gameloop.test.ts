@@ -15,6 +15,18 @@ describe('Camera', () => {
     camera.update(100, 800);
     expect(camera.offsetX).toBe(0);
   });
+
+  it('should apply screen shake when triggered and decay over time', () => {
+    const camera = new Camera();
+    camera.triggerShake(15, 0.25);
+    camera.update(1000, 800, 0.05);
+    expect(camera.shakeX !== 0 || camera.shakeY !== 0).toBe(true);
+
+    // After shake duration expires
+    camera.update(1000, 800, 0.3);
+    expect(camera.shakeX).toBe(0);
+    expect(camera.shakeY).toBe(0);
+  });
 });
 
 describe('GameLoop Finish Handling', () => {

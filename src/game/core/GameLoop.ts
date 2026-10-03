@@ -49,9 +49,13 @@ export class GameLoop {
 
     // Collision check
     const hitType = this.level.checkCollisions(this.player);
+    if (hitType) {
+      const shakePower = hitType === 'cart' ? 18 : hitType === 'rock' ? 15 : 10;
+      this.camera.triggerShake(shakePower, 0.25);
+    }
 
-    // Camera follow
-    this.camera.update(this.player.x, viewportWidth);
+    // Camera follow with screen shake
+    this.camera.update(this.player.x, viewportWidth, deltaSeconds);
 
     // Accurate progress from Start (x=100) to Finish (x=5800)
     const startX = 100;
