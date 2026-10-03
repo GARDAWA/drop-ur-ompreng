@@ -30,6 +30,9 @@ export default function RacePage() {
   const [isMuted, setIsMuted] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [obstacleWarning, setObstacleWarning] = useState<string | null>(null);
+  const [nitroGauge, setNitroGauge] = useState(50);
+  const [isBoosting, setIsBoosting] = useState(false);
+  const [shieldTimer, setShieldTimer] = useState(0);
 
   const gameLoopRef = useRef<GameLoop | null>(null);
   const rendererRef = useRef<PixiSceneRenderer | null>(null);
@@ -37,7 +40,7 @@ export default function RacePage() {
   const tickerCallbackRef = useRef<(() => void) | null>(null);
   const isPausedRef = useRef(false);
   const remotePlayersRef = useRef<Map<string, RemotePlayer>>(new Map());
-  const inputRef = useRef({ left: false, right: false });
+  const inputRef = useRef({ left: false, right: false, boost: false });
   const hasFinishedRef = useRef(false);
   const countdownDoneRef = useRef(false);
 
@@ -58,6 +61,17 @@ export default function RacePage() {
       sound.playJump();
       gameLoopRef.current.player.jump();
     }
+  }, []);
+
+  const handleBoostStart = useCallback(() => {
+    if (!inputRef.current.boost && gameLoopRef.current && gameLoopRef.current.player.nitroGauge > 10) {
+      sound.playBoostStart();
+    }
+    inputRef.current.boost = true;
+  }, []);
+
+  const handleBoostEnd = useCallback(() => {
+    inputRef.current.boost = false;
   }, []);
 
   const toggleSound = () => {
@@ -154,11 +168,21 @@ export default function RacePage() {
         e.preventDefault();
         triggerJump();
       }
+      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyS' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (!inputRef.current.boost && gameLoopRef.current && gameLoopRef.current.player.nitroGauge > 10) {
+          sound.playBoostStart();
+        }
+        inputRef.current.boost = true;
+      }
       if (e.code === 'KeyA' || e.key === 'ArrowLeft') inputRef.current.left = true;
       if (e.code === 'KeyD' || e.key === 'ArrowRight') inputRef.current.right = true;
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyS' || e.key === 'ArrowDown') {
+        inputRef.current.boost = false;
+      }
       if (e.code === 'KeyA' || e.key === 'ArrowLeft') inputRef.current.left = false;
       if (e.code === 'KeyD' || e.key === 'ArrowRight') inputRef.current.right = false;
     };
@@ -190,27 +214,35 @@ export default function RacePage() {
         setTimeElapsed(time);
         setProgressRatio(ratio);
         setCurrentX(x);
+        setNitroGauge(gameLoop.player.nitroGauge);
+        setIsBoosting(gameLoop.player.isBoosting);
+        setShieldTimer(gameLoop.player.shieldTimer);
 
         // Sound effect & VFX based on hit obstacle
         if (hitType) {
-          rendererRef.current?.spawnHitVfx(hitType, x, gameLoop.player.y);
-          switch (hitType) {
-            case 'chicken':
-              sound.playChicken();
-              break;
-            case 'speedbump':
-              sound.playBump();
-              break;
-            case 'crate':
-              sound.playWoodBreak();
-              break;
-            case 'puddle':
-              sound.playPuddle();
-              break;
-            case 'cart':
-            case 'rock':
-              sound.playHit();
-              break;
+          if (gameLoop.player.shieldTimer > 0) {
+            sound.playPickupShield();
+            rendererRef.current?.spawnFloatingText('🛡️ BLOCKED!', '#38bdf8', x + 32, gameLoop.player.y - 40);
+          } else {
+            rendererRef.current?.spawnHitVfx(hitType, x, gameLoop.player.y);
+            switch (hitType) {
+              case 'chicken':
+                sound.playChicken();
+                break;
+              case 'speedbump':
+                sound.playBump();
+                break;
+              case 'crate':
+                sound.playWoodBreak();
+                break;
+              case 'puddle':
+                sound.playPuddle();
+                break;
+              case 'cart':
+              case 'rock':
+                sound.playHit();
+                break;
+            }
           }
         }
 
@@ -232,15 +264,34 @@ export default function RacePage() {
           setObstacleWarning(null);
         }
 
-        // Speed calculation in km/h
+        // Speed calculation in km/h with nitro boost multiplier
         const currentSpeed =
           (gameLoop.player.baseSpeed +
             (inputRef.current.right ? 40 : inputRef.current.left ? -40 : 0)) *
-          gameLoop.player.speedModifier;
+          gameLoop.player.speedModifier *
+          (gameLoop.player.isBoosting ? 1.75 : 1.0);
         setPlayerSpeedKmh(Math.round(currentSpeed * 0.16));
 
         // Network sync
         getMultiplayerService().broadcastPosition(x, gameLoop.player.y);
+      },
+      onPickup: (type) => {
+        rendererRef.current?.spawnPickupVfx(type, gameLoop.player.x, gameLoop.player.y);
+        if (type === 'milk') {
+          sound.playPickupMilk();
+          rendererRef.current?.spawnFloatingText('🥛 +25 NITRO!', '#38bdf8', gameLoop.player.x + 32, gameLoop.player.y - 45);
+        } else if (type === 'fruit') {
+          sound.playPickupShield();
+          rendererRef.current?.spawnFloatingText('🛡️ PERISAI KEBAL!', '#10b981', gameLoop.player.x + 32, gameLoop.player.y - 45);
+        } else if (type === 'bento') {
+          sound.playPickupShield();
+          sound.playBoostStart();
+          rendererRef.current?.spawnFloatingText('🍱 OMPRENG EMAS! 100% NITRO!', '#facc15', gameLoop.player.x + 32, gameLoop.player.y - 45);
+        }
+      },
+      onNearMiss: () => {
+        sound.playNearMiss();
+        rendererRef.current?.spawnFloatingText('⚡ DEKAT BAHAYA! +15 NITRO', '#f59e0b', gameLoop.player.x + 32, gameLoop.player.y - 55);
       },
       onFinish: (time) => {
         hasFinishedRef.current = true;
@@ -298,6 +349,7 @@ export default function RacePage() {
   };
 
   const handleResume = () => {
+    inputRef.current = { left: false, right: false, boost: false };
     setIsPaused(false);
     isPausedRef.current = false;
   };
@@ -319,6 +371,12 @@ export default function RacePage() {
         approachingObstacleWarning={obstacleWarning}
         isFinished={isMatchFinished}
         localPlayerId={getMultiplayerService().getLocalPlayerId()}
+        nitroGauge={nitroGauge}
+        isBoosting={isBoosting}
+        shieldTimer={shieldTimer}
+        onBoostStart={handleBoostStart}
+        onBoostEnd={handleBoostEnd}
+        onJump={triggerJump}
       />
       {isPaused && (
         <PauseModal

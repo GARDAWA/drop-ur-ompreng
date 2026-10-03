@@ -1623,4 +1623,245 @@ export class AssetFactory {
       ctx.stroke();
     });
   }
+
+  /**
+   * Susu UHT MBG (Nutrient Pack Pickup - +25 Nitro)
+   */
+  public static getMilkTexture(): Texture {
+    return this.fromCanvas('pickup_milk_v1', 64, 64, (ctx) => {
+      // Golden outer glow
+      const glow = ctx.createRadialGradient(32, 32, 10, 32, 32, 30);
+      glow.addColorStop(0, 'rgba(56, 189, 248, 0.45)');
+      glow.addColorStop(1, 'rgba(56, 189, 248, 0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(32, 32, 30, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Milk carton body
+      ctx.fillStyle = '#f8fafc';
+      ctx.beginPath();
+      ctx.roundRect(18, 18, 28, 38, 5);
+      ctx.fill();
+
+      // Blue top gable
+      ctx.fillStyle = '#0284c7';
+      ctx.beginPath();
+      ctx.moveTo(18, 18);
+      ctx.lineTo(32, 8);
+      ctx.lineTo(46, 18);
+      ctx.closePath();
+      ctx.fill();
+
+      // Diagonal decorative strip
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.moveTo(18, 30);
+      ctx.lineTo(46, 26);
+      ctx.lineTo(46, 42);
+      ctx.lineTo(18, 46);
+      ctx.closePath();
+      ctx.fill();
+
+      // Straw
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(34, 10);
+      ctx.lineTo(38, 2);
+      ctx.stroke();
+
+      // Text "MBG"
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('MBG', 32, 38);
+
+      // Star sparkle
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath();
+      ctx.arc(42, 14, 3, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  /**
+   * Apel Segar / Buah MBG (Nutrient Shield Pickup - 3.5s Invulnerability)
+   */
+  public static getFruitTexture(): Texture {
+    return this.fromCanvas('pickup_fruit_v1', 64, 64, (ctx) => {
+      // Emerald / Jade outer glow
+      const glow = ctx.createRadialGradient(32, 32, 10, 32, 32, 30);
+      glow.addColorStop(0, 'rgba(16, 185, 129, 0.45)');
+      glow.addColorStop(1, 'rgba(16, 185, 129, 0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(32, 32, 30, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Apple Body
+      const appleGrad = ctx.createRadialGradient(28, 28, 4, 32, 36, 22);
+      appleGrad.addColorStop(0, '#f87171');
+      appleGrad.addColorStop(0.5, '#dc2626');
+      appleGrad.addColorStop(1, '#991b1b');
+      ctx.fillStyle = appleGrad;
+      ctx.beginPath();
+      ctx.arc(26, 34, 14, 0, Math.PI * 2);
+      ctx.arc(38, 34, 14, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Apple dimple base
+      ctx.beginPath();
+      ctx.arc(32, 40, 13, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Stem
+      ctx.strokeStyle = '#78350f';
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(32, 22);
+      ctx.quadraticCurveTo(34, 14, 38, 12);
+      ctx.stroke();
+
+      // Green Leaf
+      ctx.fillStyle = '#22c55e';
+      ctx.beginPath();
+      ctx.ellipse(39, 18, 7, 4, Math.PI / 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Glossy shine highlight
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+      ctx.beginPath();
+      ctx.ellipse(24, 28, 5, 2.5, -Math.PI / 4, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  /**
+   * Ompreng Emas Super (Golden Bento - 100% Full Nitro + Shield)
+   */
+  public static getBentoTexture(): Texture {
+    return this.fromCanvas('pickup_bento_v1', 72, 72, (ctx) => {
+      // Golden radiant starburst glow
+      const glow = ctx.createRadialGradient(36, 36, 8, 36, 36, 34);
+      glow.addColorStop(0, 'rgba(250, 204, 21, 0.7)');
+      glow.addColorStop(0.7, 'rgba(234, 179, 8, 0.25)');
+      glow.addColorStop(1, 'rgba(234, 179, 8, 0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(36, 36, 34, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Golden Ompreng Tray
+      const goldGrad = ctx.createLinearGradient(16, 20, 56, 56);
+      goldGrad.addColorStop(0, '#fef08a');
+      goldGrad.addColorStop(0.3, '#facc15');
+      goldGrad.addColorStop(0.7, '#ca8a04');
+      goldGrad.addColorStop(1, '#854d0e');
+      ctx.fillStyle = goldGrad;
+      ctx.beginPath();
+      ctx.roundRect(14, 22, 44, 30, 8);
+      ctx.fill();
+
+      // Metallic border
+      ctx.strokeStyle = '#fef9c3';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Bento compartments
+      ctx.fillStyle = '#713f12';
+      ctx.beginPath();
+      ctx.roundRect(18, 26, 17, 22, 4);
+      ctx.roundRect(39, 26, 15, 10, 3);
+      ctx.roundRect(39, 38, 15, 10, 3);
+      ctx.fill();
+
+      // Nasi Putih + Lauk
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.roundRect(19, 27, 15, 20, 3);
+      ctx.fill();
+
+      // Ayam Goreng
+      ctx.fillStyle = '#b45309';
+      ctx.beginPath();
+      ctx.arc(46, 31, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Sayur Hijau
+      ctx.fillStyle = '#16a34a';
+      ctx.beginPath();
+      ctx.arc(46, 43, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Shimmering star
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(52, 22, 3, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  /**
+   * Energy Shield Forcefield Bubble (Around Courier during shield active)
+   */
+  public static getShieldBubbleTexture(): Texture {
+    return this.fromCanvas('shield_bubble_v1', 140, 110, (ctx) => {
+      const shieldGrad = ctx.createRadialGradient(70, 55, 30, 70, 55, 60);
+      shieldGrad.addColorStop(0, 'rgba(56, 189, 248, 0.05)');
+      shieldGrad.addColorStop(0.7, 'rgba(56, 189, 248, 0.25)');
+      shieldGrad.addColorStop(0.9, 'rgba(125, 211, 252, 0.6)');
+      shieldGrad.addColorStop(1, 'rgba(255, 255, 255, 0.8)');
+
+      ctx.fillStyle = shieldGrad;
+      ctx.beginPath();
+      ctx.ellipse(70, 55, 64, 48, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Electric hex ring
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.ellipse(70, 55, 62, 46, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Shimmer sparks
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(30, 30, 3, 0, Math.PI * 2);
+      ctx.arc(110, 40, 2.5, 0, Math.PI * 2);
+      ctx.arc(80, 95, 2, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  /**
+   * Nitro Flame Tail (Exhaust flame when boosting)
+   */
+  public static getNitroFlameTexture(): Texture {
+    return this.fromCanvas('nitro_flame_v1', 60, 30, (ctx) => {
+      // Fiery jet exhaust pointing leftwards behind scooter
+      const grad = ctx.createLinearGradient(60, 15, 0, 15);
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(0.2, '#38bdf8');
+      grad.addColorStop(0.5, '#f59e0b');
+      grad.addColorStop(0.8, '#ef4444');
+      grad.addColorStop(1, 'rgba(239, 68, 68, 0)');
+
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(60, 10);
+      ctx.quadraticCurveTo(35, 8, 0, 15);
+      ctx.quadraticCurveTo(35, 22, 60, 20);
+      ctx.closePath();
+      ctx.fill();
+
+      // Core white-hot blast
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.ellipse(50, 15, 10, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
 }

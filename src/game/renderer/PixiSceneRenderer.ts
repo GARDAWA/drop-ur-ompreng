@@ -32,11 +32,15 @@ export class PixiSceneRenderer {
   // Entity visual objects
   private playerSprite: Sprite;
   private playerBadge: Text;
+  private shieldSprite: Sprite;
+  private nitroFlameSprite: Sprite;
   private remoteSprites: Map<string, { sprite: Sprite; badge: Text }> = new Map();
   private obstacleSprites: Sprite[] = [];
+  private pickupSprites: Sprite[] = [];
 
-  // Particles & Animations
+  // Particles, Animations & Floating Text
   private particles: Particle[] = [];
+  private floatingTexts: { textObj: Text; vy: number; life: number }[] = [];
   private particleGraphics: Graphics;
   private finishConfettiTriggered: boolean = false;
   private animTimer: number = 0;
@@ -67,11 +71,25 @@ export class PixiSceneRenderer {
     this.particleGraphics = new Graphics();
     this.fxLayer.addChild(this.particleGraphics);
 
+    // Setup Nitro Flame Sprite (exhaust blast behind scooter)
+    const flameTex = AssetFactory.getNitroFlameTexture();
+    this.nitroFlameSprite = new Sprite(flameTex);
+    this.nitroFlameSprite.anchor.set(1.0, 0.5);
+    this.nitroFlameSprite.visible = false;
+    this.entitiesLayer.addChild(this.nitroFlameSprite);
+
     // Setup Local Player Sprite (High-Definition Green Courier)
     const courierTex = AssetFactory.getCourierTexture('green');
     this.playerSprite = new Sprite(courierTex);
     this.playerSprite.anchor.set(0.5, 0.92);
     this.entitiesLayer.addChild(this.playerSprite);
+
+    // Setup Shield Forcefield Sprite (energy bubble around courier)
+    const shieldTex = AssetFactory.getShieldBubbleTexture();
+    this.shieldSprite = new Sprite(shieldTex);
+    this.shieldSprite.anchor.set(0.5, 0.5);
+    this.shieldSprite.visible = false;
+    this.entitiesLayer.addChild(this.shieldSprite);
 
     const badgeStyle = new TextStyle({
       fontSize: 11,
@@ -92,6 +110,7 @@ export class PixiSceneRenderer {
 
     this.setupStaticEnvironment();
     this.setupObstacleSprites();
+    this.setupPickupSprites();
   }
 
   private setupStaticEnvironment(): void {
@@ -457,6 +476,70 @@ export class PixiSceneRenderer {
     }
   }
 
+  private setupPickupSprites(): void {
+    for (const pickup of this.gameLoop.powerUps.pickups) {
+      let tex;
+      switch (pickup.type) {
+        case 'milk':
+          tex = AssetFactory.getMilkTexture();
+          break;
+        case 'fruit':
+          tex = AssetFactory.getFruitTexture();
+          break;
+        case 'bento':
+          tex = AssetFactory.getBentoTexture();
+          break;
+      }
+      const sprite = new Sprite(tex);
+      sprite.anchor.set(0.5, 0.5);
+      sprite.position.set(pickup.x + pickup.width / 2, pickup.y + pickup.height / 2);
+      this.obstacleLayer.addChild(sprite);
+      this.pickupSprites.push(sprite);
+    }
+  }
+
+  public spawnFloatingText(text: string, color: string, x: number, y: number): void {
+    const style = new TextStyle({
+      fontSize: 16,
+      fontWeight: '900',
+      fill: color,
+      stroke: { color: '#090d16', width: 3.5 },
+      dropShadow: {
+        alpha: 0.9,
+        angle: Math.PI / 4,
+        blur: 3,
+        color: '#000000',
+        distance: 2,
+      },
+    });
+    const textObj = new Text({ text, style });
+    textObj.anchor.set(0.5, 0.5);
+    textObj.position.set(x, y);
+    this.fxLayer.addChild(textObj);
+    this.floatingTexts.push({ textObj, vy: -60, life: 1.2 });
+  }
+
+  public spawnPickupVfx(type: string, x: number, y: number): void {
+    const colors = type === 'milk'
+      ? [0x38bdf8, 0xffffff, 0xfacc15]
+      : type === 'fruit'
+      ? [0x10b981, 0xef4444, 0x22c55e]
+      : [0xfacc15, 0xfef08a, 0xffffff]; // Golden bento
+
+    for (let i = 0; i < 28; i++) {
+      this.particles.push({
+        x: x + 16,
+        y: y + 16,
+        vx: (Math.random() - 0.5) * 320,
+        vy: (Math.random() - 0.5) * 320,
+        size: 3 + Math.random() * 4,
+        alpha: 1.0,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        life: 0.6,
+      });
+    }
+  }
+
   public spawnHitVfx(type: string, x: number, y: number): void {
     if (type === 'puddle') {
       // Muddy splash particles
@@ -550,6 +633,23 @@ export class PixiSceneRenderer {
       }
     }
 
+    // 3b. Sync nutrient pickup positions & floating bobbing
+    const pickups = this.gameLoop.powerUps.pickups;
+    for (let i = 0; i < pickups.length; i++) {
+      const p = pickups[i];
+      const s = this.pickupSprites[i];
+      if (s) {
+        if (p.isCollected) {
+          s.visible = false;
+        } else {
+          s.visible = true;
+          const bobbing = Math.sin(this.animTimer * 4 + p.x * 0.05) * 4;
+          s.position.set(p.x + p.width / 2, p.y + p.height / 2 + bobbing);
+          s.scale.set(1 + Math.sin(this.animTimer * 6 + p.x) * 0.06);
+        }
+      }
+    }
+
     // 4. Animate Local Player (Scooter engine rumble & jumping tilt)
     const engineRumble = player.isGrounded && this.gameLoop.isRunning
       ? Math.sin(this.animTimer * 26) * 1.3
@@ -563,6 +663,39 @@ export class PixiSceneRenderer {
       this.playerSprite.rotation = Math.max(-0.25, Math.min(0.2, player.velocityY * 0.0004));
     } else {
       this.playerSprite.rotation = this.gameLoop.isRunning ? 0.015 : 0;
+    }
+
+    // Shield Forcefield Animation
+    if (player.shieldTimer > 0) {
+      this.shieldSprite.visible = true;
+      this.shieldSprite.position.set(player.x + 32, player.y - 36 + engineRumble);
+      this.shieldSprite.alpha = 0.75 + Math.sin(this.animTimer * 8) * 0.2;
+      this.shieldSprite.scale.set(1 + Math.sin(this.animTimer * 10) * 0.04);
+    } else {
+      this.shieldSprite.visible = false;
+    }
+
+    // Nitro Flame Tail Animation
+    if (player.isBoosting) {
+      this.nitroFlameSprite.visible = true;
+      this.nitroFlameSprite.position.set(player.x - 4, player.y - 18 + engineRumble);
+      this.nitroFlameSprite.scale.set(0.95 + Math.random() * 0.35, 0.9 + Math.random() * 0.3);
+
+      // Nitro fiery exhaust sparks trailing behind
+      if (Math.random() < 0.75) {
+        this.particles.push({
+          x: player.x - 12,
+          y: player.y - 18 + (Math.random() * 10 - 5),
+          vx: -(240 + Math.random() * 200),
+          vy: (Math.random() - 0.5) * 80,
+          size: 3.5 + Math.random() * 4,
+          alpha: 1.0,
+          color: Math.random() < 0.5 ? 0x38bdf8 : 0xf59e0b,
+          life: 0.35,
+        });
+      }
+    } else {
+      this.nitroFlameSprite.visible = false;
     }
 
     // Dynamic exhaust smoke & dust particles while running
@@ -635,7 +768,11 @@ export class PixiSceneRenderer {
       }
     }
 
-    // 7. Update and Draw Particles
+    // 7. Update and Draw Particles (capped at 250 to ensure 60fps on mobile)
+    if (this.particles.length > 250) {
+      this.particles.splice(0, this.particles.length - 250);
+    }
+
     this.particleGraphics.clear();
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
@@ -651,12 +788,32 @@ export class PixiSceneRenderer {
         this.particleGraphics.rect(p.x, p.y, p.size, p.size).fill({ color: p.color, alpha: p.alpha });
       }
     }
+
+    // 8. Update Floating Stunt/Pickup Notifications
+    for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
+      const ft = this.floatingTexts[i];
+      ft.textObj.y += ft.vy * delta;
+      ft.life -= delta;
+      ft.textObj.alpha = Math.max(0, ft.life);
+      if (ft.life <= 0) {
+        this.fxLayer.removeChild(ft.textObj);
+        ft.textObj.destroy();
+        this.floatingTexts.splice(i, 1);
+      }
+    }
   }
 
   public destroy(): void {
+    for (const ft of this.floatingTexts) {
+      try {
+        ft.textObj.destroy();
+      } catch {}
+    }
+    this.floatingTexts = [];
     this.stageContainer.destroy({ children: true });
     this.remoteSprites.clear();
     this.obstacleSprites = [];
+    this.pickupSprites = [];
     this.particles = [];
   }
 }

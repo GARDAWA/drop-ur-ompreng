@@ -66,4 +66,50 @@ describe('GameLoop Finish Handling', () => {
     expect(loop.player.x).toBe(finalX);
     expect(loop.timeElapsed).toBe(finalTime);
   });
+
+  it('triggers onPickup and applies boost/shield when player runs into pickup', () => {
+    let collected: string | null = null;
+    const loop = new GameLoop({
+      onPickup: (type) => {
+        collected = type;
+      },
+    });
+
+    loop.start();
+    // Milk is placed at x=500, groundLevelY = 370
+    // Put player right at x=500, y=400 (grounded)
+    loop.player.x = 490;
+    loop.player.y = 400;
+    loop.player.nitroGauge = 20;
+
+    loop.update(0.016, { left: false, right: false });
+
+    expect(collected).toBe('milk');
+    // +25 nitro added + passive 0.04 regen
+    expect(loop.player.nitroGauge).toBeCloseTo(45.04, 1);
+  });
+
+  it('triggers onNearMiss and awards nitro when airborne closely above obstacle', () => {
+    let nearMissTriggered = false;
+    const loop = new GameLoop({
+      onNearMiss: () => {
+        nearMissTriggered = true;
+      },
+    });
+
+    loop.start();
+    // Rock is at x=1350, y=362, width=44, height=38
+    // Player is airborne: jump above it with clearance within 50px
+    loop.player.x = 1350;
+    loop.player.y = 330; // player bottom is 330, rock top is 362, gap = 32px
+    loop.player.isGrounded = false;
+    loop.player.nitroGauge = 10;
+
+    loop.update(0.016, { left: false, right: false });
+
+    expect(nearMissTriggered).toBe(true);
+    // +15 nitro added + passive 0.04 regen
+    expect(loop.player.nitroGauge).toBeCloseTo(25.04, 1);
+  });
 });
+

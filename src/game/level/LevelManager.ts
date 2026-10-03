@@ -99,9 +99,36 @@ export class LevelManager {
     return hitType;
   }
 
+  public checkNearMiss(player: Player): boolean {
+    if (player.isGrounded) return false;
+    const playerBounds = player.getBounds();
+    const playerBottom = playerBounds.y + playerBounds.height;
+    let didNearMiss = false;
+
+    for (const obs of this.obstacles) {
+      if (obs.isTriggered || obs.nearMissAwarded) continue;
+      const obsBounds = obs.getBounds();
+
+      const horizontalOverlap =
+        playerBounds.x < obsBounds.x + obsBounds.width &&
+        playerBounds.x + playerBounds.width > obsBounds.x;
+
+      if (horizontalOverlap) {
+        const gap = obsBounds.y - playerBottom;
+        if (gap >= 0 && gap <= 55) {
+          obs.nearMissAwarded = true;
+          didNearMiss = true;
+          break;
+        }
+      }
+    }
+    return didNearMiss;
+  }
+
   public reset(): void {
     for (const obs of this.obstacles) {
       obs.isTriggered = false;
+      obs.nearMissAwarded = false;
     }
     this.lastCollidedType = null;
   }

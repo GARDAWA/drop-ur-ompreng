@@ -17,6 +17,12 @@ interface GameHUDProps {
   approachingObstacleWarning?: string | null;
   isFinished?: boolean;
   localPlayerId?: string;
+  nitroGauge?: number;
+  isBoosting?: boolean;
+  shieldTimer?: number;
+  onBoostStart?: () => void;
+  onBoostEnd?: () => void;
+  onJump?: () => void;
 }
 
 export const GameHUD: React.FC<GameHUDProps> = ({
@@ -33,6 +39,12 @@ export const GameHUD: React.FC<GameHUDProps> = ({
   approachingObstacleWarning,
   isFinished = false,
   localPlayerId,
+  nitroGauge = 50,
+  isBoosting = false,
+  shieldTimer = 0,
+  onBoostStart,
+  onBoostEnd,
+  onJump,
 }) => {
   // Start is at 100, Finish is at 5800
   const normalizedPercent = isFinished
@@ -132,6 +144,13 @@ export const GameHUD: React.FC<GameHUDProps> = ({
           </div>
         )}
 
+        {/* Shield active banner */}
+        {!isFinished && shieldTimer > 0 && (
+          <div className="self-center bg-cyan-950/90 text-cyan-300 border border-cyan-400/80 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider shadow-[0_0_20px_rgba(56,189,248,0.5)] animate-pulse flex items-center gap-1.5 backdrop-blur">
+            <span>🛡️</span> PERISAI KEBAL AKTIF: {shieldTimer.toFixed(1)}s (ANTI RINTANGAN!)
+          </div>
+        )}
+
         {/* Warning notification banner if approaching high obstacle */}
         {!isFinished && approachingObstacleWarning && (
           <div className="self-center bg-rose-600/90 text-white border border-rose-400/80 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider shadow-lg animate-pulse flex items-center gap-1.5">
@@ -155,29 +174,75 @@ export const GameHUD: React.FC<GameHUDProps> = ({
       )}
 
       {/* Bottom Controls & Speedometer */}
-      <div className="flex justify-between items-end">
-        {/* Speedometer */}
-        <div className="bg-slate-950/90 border border-slate-700/80 px-4 py-3 rounded-2xl backdrop-blur-md shadow-2xl flex items-center gap-3.5">
-          <div className="text-center">
-            <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Kecepatan</div>
-            <div className="text-xl sm:text-2xl font-black font-mono text-amber-400">
-              {isFinished ? 0 : playerSpeedKmh} <span className="text-xs font-normal text-slate-300">km/h</span>
+      <div className="flex justify-between items-end gap-3">
+        {/* Speedometer & Nitro Cockpit */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="bg-slate-950/90 border border-slate-700/80 px-4 py-3 rounded-2xl backdrop-blur-md shadow-2xl flex items-center gap-3.5">
+            <div className="text-center">
+              <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Kecepatan</div>
+              <div className="text-xl sm:text-2xl font-black font-mono text-amber-400">
+                {isFinished ? 0 : playerSpeedKmh} <span className="text-xs font-normal text-slate-300">km/h</span>
+              </div>
+            </div>
+            <div className="h-8 w-px bg-slate-800"></div>
+            <div>
+              <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Kurir</div>
+              <div className="text-xs sm:text-sm font-bold text-slate-200 truncate max-w-[110px]">
+                {playerName}
+              </div>
             </div>
           </div>
-          <div className="h-8 w-px bg-slate-800"></div>
-          <div>
-            <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Kurir</div>
-            <div className="text-xs sm:text-sm font-bold text-slate-200 truncate max-w-[130px]">
-              {playerName}
+
+          {/* Nitro Energy Dashboard */}
+          <div className={`bg-slate-950/90 border ${isBoosting ? 'border-orange-500 shadow-[0_0_20px_rgba(249,115,22,0.6)]' : 'border-slate-700/80'} px-3.5 py-2.5 rounded-2xl backdrop-blur-md shadow-2xl flex flex-col gap-1 transition-all`}>
+            <div className="flex justify-between items-center gap-4 text-[10px] font-black uppercase tracking-wider">
+              <span className="flex items-center gap-1 text-orange-400">
+                🔥 GAS POL (NITRO)
+              </span>
+              <span className={`font-mono font-bold ${nitroGauge > 20 ? 'text-amber-300' : 'text-slate-500'}`}>
+                {Math.round(nitroGauge)}%
+              </span>
+            </div>
+            <div className="w-28 sm:w-36 h-3 bg-slate-900 border border-slate-700 rounded-full overflow-hidden p-0.5 shadow-inner">
+              <div
+                className={`h-full rounded-full transition-all duration-75 ${
+                  isBoosting
+                    ? 'bg-gradient-to-r from-orange-500 via-amber-300 to-rose-500 animate-pulse'
+                    : 'bg-gradient-to-r from-blue-500 via-cyan-400 to-amber-400'
+                }`}
+                style={{ width: `${Math.min(100, Math.max(0, nitroGauge))}%` }}
+              />
             </div>
           </div>
         </div>
 
-        {/* Instructions & Sound toggle */}
+        {/* Instructions & Interactive Action Buttons */}
         <div className="flex items-center gap-2">
-          <div className="hidden sm:block bg-slate-950/85 border border-slate-700 px-3.5 py-2.5 rounded-xl text-xs text-slate-300 font-medium backdrop-blur shadow">
-            <kbd className="bg-slate-800 border border-slate-700 text-amber-300 px-2 py-0.5 rounded font-mono font-bold">SPACE</kbd> / Klik = Lompat • <kbd className="bg-slate-800 border border-slate-700 text-amber-300 px-2 py-0.5 rounded font-mono font-bold">ESC</kbd> = Pause
+          {/* Dedicated Gas Pol Boost Button */}
+          {!isFinished && (
+            <button
+              onMouseDown={onBoostStart}
+              onMouseUp={onBoostEnd}
+              onTouchStart={(e) => { e.preventDefault(); onBoostStart?.(); }}
+              onTouchEnd={(e) => { e.preventDefault(); onBoostEnd?.(); }}
+              disabled={nitroGauge < 1}
+              title="Tekan dan tahan untuk Gas Pol Nitro (Shift / S)"
+              className={`pointer-events-auto px-4 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition active:scale-95 shadow-xl backdrop-blur cursor-pointer flex items-center gap-1.5 ${
+                isBoosting
+                  ? 'bg-gradient-to-r from-orange-500 to-rose-600 text-white border border-amber-300 shadow-[0_0_20px_rgba(249,115,22,0.8)] animate-pulse'
+                  : nitroGauge > 10
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 border border-amber-400 shadow-amber-500/20'
+                  : 'bg-slate-800 text-slate-500 border border-slate-700 opacity-60 cursor-not-allowed'
+              }`}
+            >
+              <span>🔥</span> GAS POL!
+            </button>
+          )}
+
+          <div className="hidden lg:block bg-slate-950/85 border border-slate-700 px-3.5 py-2.5 rounded-xl text-xs text-slate-300 font-medium backdrop-blur shadow">
+            <kbd className="bg-slate-800 border border-slate-700 text-amber-300 px-1.5 py-0.5 rounded font-mono font-bold">SPACE</kbd> = Lompat • <kbd className="bg-slate-800 border border-slate-700 text-amber-300 px-1.5 py-0.5 rounded font-mono font-bold">SHIFT / S</kbd> = Gas Pol
           </div>
+
           {onTogglePause && !isFinished && (
             <button
               onClick={onTogglePause}
@@ -187,6 +252,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
               ⏸️
             </button>
           )}
+
           <button
             onClick={onToggleSound}
             title={isMuted ? 'Nyalakan Audio' : 'Matikan Audio'}

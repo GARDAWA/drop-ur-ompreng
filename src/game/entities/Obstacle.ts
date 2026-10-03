@@ -17,6 +17,7 @@ export class Obstacle {
   public width: number;
   public height: number;
   public isTriggered: boolean = false;
+  public nearMissAwarded: boolean = false;
   private animTimer: number = 0;
 
   constructor(config: ObstacleConfig) {

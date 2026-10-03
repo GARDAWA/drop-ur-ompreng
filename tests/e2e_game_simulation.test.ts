@@ -149,4 +149,56 @@ describe('E2E Full Game Simulation & Mechanics', () => {
     level.reset();
     expect(level.obstacles[0].isTriggered).toBe(false);
   });
+
+  it('simulates full race with active nitro boosting, powerup collection, shield deflection, and near-miss stunts', () => {
+    let pickupsCollected: string[] = [];
+    let nearMissCount = 0;
+    let finishTime: number | null = null;
+
+    const loop = new GameLoop({
+      onPickup: (type) => {
+        pickupsCollected.push(type);
+      },
+      onNearMiss: () => {
+        nearMissCount++;
+      },
+      onFinish: (time) => {
+        finishTime = time;
+      },
+    });
+
+    loop.start();
+    expect(loop.powerUps.pickups.length).toBe(15);
+    expect(loop.player.nitroGauge).toBe(50); // Starts with 50% nitro
+
+    const dt = 0.02;
+    let frames = 0;
+
+    while (!loop.isFinished && frames < 2500) {
+      frames++;
+      // AI strategy: Boost if nitro > 30 and no obstacle immediately ahead
+      const nextObstacle = loop.level.obstacles.find(
+        (obs) => !obs.isTriggered && obs.x > loop.player.x && obs.x - loop.player.x < 70
+      );
+
+      const shouldBoost = loop.player.nitroGauge > 25 && (!nextObstacle || loop.player.shieldTimer > 0);
+
+      // Jump when close to obstacle
+      if (nextObstacle && loop.player.isGrounded && nextObstacle.x - loop.player.x < 55) {
+        loop.player.jump();
+      }
+
+      loop.update(dt, { left: false, right: true, boost: shouldBoost });
+    }
+
+    expect(loop.isFinished).toBe(true);
+    expect(finishTime).not.toBeNull();
+    // Powerups should be picked up along the way
+    expect(pickupsCollected.length).toBeGreaterThan(0);
+    // Verified pickups include milk and/or fruit
+    expect(pickupsCollected.some((p) => p === 'milk' || p === 'fruit' || p === 'bento')).toBe(true);
+    // At finish line, player has crossed 5800
+    expect(loop.player.x).toBeGreaterThanOrEqual(5800);
+  });
 });
+
