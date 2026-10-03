@@ -41,14 +41,12 @@ export default function RacePage() {
   const hasFinishedRef = useRef(false);
   const countdownDoneRef = useRef(false);
 
-  const [playerName, setPlayerName] = useState('Kurir MBG');
-
-  useEffect(() => {
-    const stored = sessionStorage.getItem('player_name');
-    if (stored) {
-      setPlayerName(stored);
+  const [playerName] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('player_name') || 'Kurir MBG';
     }
-  }, []);
+    return 'Kurir MBG';
+  });
 
   const triggerJump = useCallback(() => {
     if (
@@ -69,13 +67,13 @@ export default function RacePage() {
   };
 
   const togglePause = useCallback(() => {
-    if (hasFinishedRef.current || countdown !== null) return;
+    if (hasFinishedRef.current || !countdownDoneRef.current) return;
     setIsPaused((prev) => {
       const next = !prev;
       isPausedRef.current = next;
       return next;
     });
-  }, [countdown]);
+  }, []);
 
   useEffect(() => {
     const service = getMultiplayerService();
