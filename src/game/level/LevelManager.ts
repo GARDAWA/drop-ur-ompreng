@@ -24,28 +24,24 @@ export class LevelManager {
 
   private generateObstacles(): void {
     const course: { x: number; type: ObstacleType }[] = [
-      // Stage 1: Pemanasan Keluar dari Dapur SPPG
-      { x: 650, type: 'speedbump' },
-      { x: 950, type: 'puddle' },
+      // Stage 1: Pemanasan Keluar dari Dapur SPPG (lapang dan ritmik)
+      { x: 800, type: 'speedbump' },
       { x: 1350, type: 'rock' },
 
       // Stage 2: Area Pasar & Perumahan Warga
-      { x: 1750, type: 'chicken' },
-      { x: 2150, type: 'cart' },
-      { x: 2550, type: 'puddle' },
-      { x: 2900, type: 'crate' },
-      { x: 3300, type: 'speedbump' },
+      { x: 1900, type: 'puddle' },
+      { x: 2450, type: 'cart' },
+      { x: 3000, type: 'chicken' },
 
       // Stage 3: Jalur Lintas Cepat & Konstruksi
-      { x: 3700, type: 'rock' },
-      { x: 4050, type: 'chicken' },
-      { x: 4400, type: 'cart' },
-      { x: 4750, type: 'puddle' },
+      { x: 3550, type: 'crate' },
+      { x: 4100, type: 'rock' },
+      { x: 4650, type: 'puddle' },
 
       // Stage 4: Menjelang Gerbang Sekolah SDN 01 Merdeka
-      { x: 5050, type: 'crate' },
-      { x: 5350, type: 'chicken' },
-      { x: 5550, type: 'speedbump' },
+      { x: 5150, type: 'cart' },
+      { x: 5450, type: 'chicken' },
+      { x: 5650, type: 'speedbump' },
     ];
 
     this.obstacles = course.map(

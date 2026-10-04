@@ -13,11 +13,11 @@ import { PixiSceneRenderer } from '@/game/renderer/PixiSceneRenderer';
 import { getMultiplayerService } from '@/services/multiplayerSingleton';
 import { PlayerState } from '@/services/IMultiplayerService';
 import { sound } from '@/game/audio/SoundEffects';
-
 export default function RacePage() {
   const params = useParams();
   const router = useRouter();
-  const roomId = params.roomId as string;
+  const rawRoomId = params.roomId as string;
+  const roomId = rawRoomId ? rawRoomId.toUpperCase() : 'MBG-100';
 
   const [countdown, setCountdown] = useState<number | null>(3);
   const [timeElapsed, setTimeElapsed] = useState(0);
