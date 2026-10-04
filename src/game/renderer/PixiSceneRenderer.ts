@@ -191,13 +191,17 @@ export class PixiSceneRenderer {
     sppgSprite.position.set(10, sidewalkY - 220);
     this.bgLayer.addChild(sppgSprite);
 
-    // Finish Facility: SDN 01 Merdeka with Cheering Kids & Sang Saka Merah Putih
+    // Finish Facility: SDN 01 Merdeka
+    const finishX = this.gameLoop.level.finishX;
+    const totalRenderWidth = finishX + 3000;
+
+    // Indonesian School Finish Destination Gate Building (SDN 01 Merdeka)
     const schoolSprite = new Sprite(AssetFactory.getSchoolFinishTexture());
-    schoolSprite.position.set(5500, sidewalkY - 240);
+    schoolSprite.position.set(finishX - 300, sidewalkY - 240);
     this.bgLayer.addChild(schoolSprite);
 
     // Roadside Indonesian Warung Makan & Toko Kelontong
-    const warungLocations = [1200, 2400, 3600, 4800];
+    const warungLocations = [1200, 2600, 4000, 5400, 6800, 8200, 9600, 11000, 12400];
     warungLocations.forEach((wx, i) => {
       const warung = new Sprite(AssetFactory.getWarungTexture((i % 2 === 0 ? 1 : 2) as 1 | 2));
       warung.position.set(wx, sidewalkY - 180);
@@ -205,7 +209,7 @@ export class PixiSceneRenderer {
     });
 
     // Indonesian Banana Trees (Pohon Pisang)
-    const bananaLocations = [600, 1800, 3000, 4200];
+    const bananaLocations = [600, 1900, 3300, 4700, 6100, 7500, 8900, 10300, 11700, 13100];
     bananaLocations.forEach((bx) => {
       const banana = new Sprite(AssetFactory.getBananaTreeTexture());
       banana.position.set(bx, sidewalkY - 150);
@@ -213,7 +217,7 @@ export class PixiSceneRenderer {
     });
 
     // Roadside Tropical Palm Trees & Bougainvillea
-    for (let x = 320; x < 5450; x += 360) {
+    for (let x = 320; x < finishX - 350; x += 360) {
       if (!warungLocations.some((wx) => Math.abs(x - wx) < 180)) {
         const tree = new Sprite(AssetFactory.getTreeTexture());
         tree.position.set(x, sidewalkY - 170);
@@ -222,7 +226,7 @@ export class PixiSceneRenderer {
     }
 
     // Concrete Utility Poles with Tangled Electrical Wires (PLN Khas Indonesia)
-    for (let x = 200; x < 5550; x += 550) {
+    for (let x = 200; x < finishX - 250; x += 550) {
       const pole = new Sprite(AssetFactory.getUtilityPoleTexture());
       pole.position.set(x, sidewalkY - 250);
       this.bgLayer.addChild(pole);
@@ -232,21 +236,21 @@ export class PixiSceneRenderer {
     const roadG = new Graphics();
 
     // 4A. Background Sidewalk Base (Paving Block Trotoar Abu-abu di Belakang Jalan)
-    roadG.rect(0, groundY - 48, 7600, 34).fill(0x94a3b8);
-    for (let x = 0; x < 7600; x += 30) {
+    roadG.rect(0, groundY - 48, totalRenderWidth, 34).fill(0x94a3b8);
+    for (let x = 0; x < totalRenderWidth; x += 30) {
       roadG.rect(x, groundY - 48, 29, 33).fill(0xcbd5e1);
       roadG.rect(x + 1, groundY - 47, 27, 2).fill(0xf1f5f9);
     }
 
     // Tactile Guiding Tiles (Ubin Kuning Pemandu Tunanetra)
-    roadG.rect(0, groundY - 36, 7600, 8).fill(0xfacc15);
-    for (let x = 0; x < 7600; x += 15) {
+    roadG.rect(0, groundY - 36, totalRenderWidth, 8).fill(0xfacc15);
+    for (let x = 0; x < totalRenderWidth; x += 15) {
       roadG.rect(x, groundY - 36, 11, 2).fill(0xeab308);
       roadG.rect(x, groundY - 31, 11, 2).fill(0xeab308);
     }
 
     // 4B. 3D Merah-Putih Curb Stones (Batu Kerb Trotoar di Batas Jalan)
-    for (let x = 0; x < 7600; x += 40) {
+    for (let x = 0; x < totalRenderWidth; x += 40) {
       const isRed = (x / 40) % 2 === 0;
       // Top face of curb
       roadG.rect(x, groundY - 14, 40, 6).fill(isRed ? 0xef4444 : 0xf8fafc);
@@ -255,13 +259,13 @@ export class PixiSceneRenderer {
     }
 
     // Curb contact drop shadow onto asphalt
-    roadG.rect(0, groundY - 2, 7600, 4).fill({ color: 0x0f172a, alpha: 0.55 });
+    roadG.rect(0, groundY - 2, totalRenderWidth, 4).fill({ color: 0x0f172a, alpha: 0.55 });
 
     // 4C. High-Definition Dark Slate Asphalt Roadbed (Scooter & Obstacles Ride Directly Here!)
-    roadG.rect(0, groundY - 2, 7600, 168).fill(0x272935); // Asphalt dark slate
+    roadG.rect(0, groundY - 2, totalRenderWidth, 168).fill(0x272935); // Asphalt dark slate
 
     // Asphalt surface aggregate speckles / grit texture
-    for (let x = 0; x < 7600; x += 60) {
+    for (let x = 0; x < totalRenderWidth; x += 60) {
       roadG.rect(x + 10, groundY + 18, 18, 1.8).fill({ color: 0x334155, alpha: 0.7 });
       roadG.rect(x + 35, groundY + 50, 22, 1.8).fill({ color: 0x334155, alpha: 0.7 });
       roadG.rect(x + 18, groundY + 95, 20, 1.8).fill({ color: 0x334155, alpha: 0.7 });
@@ -269,10 +273,10 @@ export class PixiSceneRenderer {
     }
 
     // White Solid Shoulder Line (Garis Tepi Jalan)
-    roadG.rect(0, groundY + 8, 7600, 4).fill(0xf8fafc);
+    roadG.rect(0, groundY + 8, totalRenderWidth, 4).fill(0xf8fafc);
 
     // Bold Double Center Yellow Divider (Marka Jalan Kuning Tebal)
-    for (let x = 0; x < 7600; x += 140) {
+    for (let x = 0; x < totalRenderWidth; x += 140) {
       // 3D Shadow under yellow stripe
       roadG.rect(x, groundY + 70, 72, 8).fill(0x090d16);
       roadG.rect(x, groundY + 84, 72, 8).fill(0x090d16);
@@ -284,15 +288,15 @@ export class PixiSceneRenderer {
     // Authentic Zebra Crossings (Crosswalks across the road)
     const drawZebraCross = (startX: number) => {
       for (let x = startX; x < startX + 130; x += 22) {
-        // Drop shadow
         roadG.rect(x, groundY + 4, 14, 150).fill(0x090d16);
-        // Clean white stripe
         roadG.rect(x, groundY + 2, 14, 148).fill(0xf8fafc);
       }
     };
     drawZebraCross(200); // Dapur SPPG Crosswalk
-    drawZebraCross(2050); // Pasar Tradisional Crosswalk
-    drawZebraCross(5440); // SDN 01 Merdeka School Crosswalk
+    drawZebraCross(2600); // Kawasan Warga Crosswalk
+    drawZebraCross(5800); // Pasar Tradisional Crosswalk
+    drawZebraCross(9000); // Flyover Crosswalk
+    drawZebraCross(finishX - 360); // SDN 01 Merdeka School Crosswalk
 
     // Cast-Iron Manhole Covers (Tutup Got Besi Bulat)
     const drawManhole = (mx: number, my: number) => {
@@ -301,22 +305,22 @@ export class PixiSceneRenderer {
       roadG.circle(mx, my, 9).fill(0x334155);
       roadG.circle(mx, my, 4).fill(0x1e293b);
     };
-    drawManhole(800, groundY + 115);
-    drawManhole(2600, groundY + 110);
-    drawManhole(4400, groundY + 118);
+    for (let mx = 800; mx < finishX; mx += 1800) {
+      drawManhole(mx, groundY + 115);
+    }
 
     // 4D. Lower Roadside Verge & Guardrail (Fills the lower screen completely!)
     // Concrete Drainage Gutter (Saluran U-Ditch dengan Grill Besi)
-    roadG.rect(0, groundY + 164, 7600, 16).fill(0x334155);
-    for (let x = 0; x < 7600; x += 18) {
+    roadG.rect(0, groundY + 164, totalRenderWidth, 16).fill(0x334155);
+    for (let x = 0; x < totalRenderWidth; x += 18) {
       roadG.rect(x, groundY + 165, 14, 14).fill(0x1e293b);
       roadG.rect(x + 2, groundY + 167, 10, 2).fill(0x475569);
       roadG.rect(x + 2, groundY + 172, 10, 2).fill(0x475569);
     }
 
-    // Lush Fresh Green Roadside Grass Verge (Extended to 1000px height for ultra-wide and tall 4K/1080p displays)
-    roadG.rect(0, groundY + 180, 7600, 1000).fill(0x15803d);
-    for (let x = 0; x < 7600; x += 45) {
+    // Lush Fresh Green Roadside Grass Verge
+    roadG.rect(0, groundY + 180, totalRenderWidth, 1000).fill(0x15803d);
+    for (let x = 0; x < totalRenderWidth; x += 45) {
       roadG.rect(x, groundY + 178, 6, 6).fill(0x22c55e);
       roadG.rect(x + 12, groundY + 177, 5, 7).fill(0x16a34a);
       if (x % 90 === 0) {
@@ -327,14 +331,13 @@ export class PixiSceneRenderer {
     }
 
     // Steel Highway Guardrail (W-Beam Pembatas Jalan)
-    roadG.rect(0, groundY + 170, 7600, 8).fill(0x94a3b8);
-    roadG.rect(0, groundY + 172, 7600, 4).fill(0xe2e8f0);
-    for (let x = 0; x < 7600; x += 120) {
+    roadG.rect(0, groundY + 170, totalRenderWidth, 8).fill(0x94a3b8);
+    roadG.rect(0, groundY + 172, totalRenderWidth, 4).fill(0xe2e8f0);
+    for (let x = 0; x < totalRenderWidth; x += 120) {
       roadG.rect(x + 8, groundY + 168, 8, 20).fill(0x475569);
       roadG.rect(x + 10, groundY + 171, 4, 6).fill(0xef4444); // Red reflector
     }
 
-    // Add roadG to roadLayer FIRST so stencils render ON TOP of road graphics!
     this.roadLayer.addChild(roadG);
 
     // Special Painted Road Warning Markings on Asphalt
@@ -344,14 +347,14 @@ export class PixiSceneRenderer {
         style: new TextStyle({
           fontSize: 16,
           fontWeight: '900',
-          fill: '#fde047', // Clean bright road paint
+          fill: '#fde047',
           fontFamily: 'Inter, Arial, sans-serif',
           letterSpacing: 2,
           dropShadow: {
-            alpha: 0.85,
+            alpha: 0.8,
             angle: Math.PI / 4,
-            blur: 2,
-            color: '#020617',
+            blur: 4,
+            color: '#090d16',
             distance: 2,
           },
         }),
@@ -361,14 +364,16 @@ export class PixiSceneRenderer {
     };
 
     drawRoadStencil(160, 'START ➔ DAPUR SPPG MANDIRI', '🛵');
-    drawRoadStencil(1650, 'ZONA PASAR TRADISIONAL', '🍲');
-    drawRoadStencil(3500, 'HATI-HATI JALUR CEPAT 60 KM/H', '⚠️');
-    drawRoadStencil(5050, 'ZONA SELAMAT SEKOLAH 20 KM/H', '🏫');
-    drawRoadStencil(5740, 'GARIS FINISH SDN 01 MERDEKA', '🏁');
+    drawRoadStencil(2600, 'ZONA PERUMAHAN & GANG WARGA', '🏡');
+    drawRoadStencil(5800, 'ZONA PASAR TRADISIONAL', '🍲');
+    drawRoadStencil(9000, 'JALUR CEPAT FLYOVER & PROYEK', '⚠️');
+    drawRoadStencil(11800, 'JALAN PROTOKOL MENUJU SEKOLAH', '🚦');
+    drawRoadStencil(finishX - 450, 'ZONA SELAMAT SEKOLAH 20 KM/H', '🏫');
+    drawRoadStencil(finishX - 60, 'GARIS FINISH SDN 01 MERDEKA', '🏁');
 
-    // --- 5. GLORIOUS 3D CHECKERED FINISH ARCH AT SCHOOL GATE (x=5800) ---
+    // --- 5. GLORIOUS 3D CHECKERED FINISH ARCH AT SCHOOL GATE ---
     const archG = new Graphics();
-    const archX = 5800;
+    const archX = finishX;
 
     // Left & Right Checkered Truss Pillars
     const pillarPositions = [archX - 60, archX + 100];

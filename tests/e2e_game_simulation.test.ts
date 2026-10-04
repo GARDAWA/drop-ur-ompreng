@@ -77,8 +77,9 @@ describe('E2E Full Game Simulation & Mechanics', () => {
     // Simulate auto-running over multiple frames (60fps simulation)
     const dt = 0.02;
     let totalFrames = 0;
-    while (!loop.isFinished && totalFrames < 2000) {
-      loop.update(dt, { left: false, right: false }, 1000);
+    while (!loop.isFinished && totalFrames < 3500) {
+      const boost = loop.player.nitroGauge > 30;
+      loop.update(dt, { left: false, right: false, boost }, 1000);
       totalFrames++;
 
       // Simulate jumping over obstacles when nearing them
@@ -168,13 +169,13 @@ describe('E2E Full Game Simulation & Mechanics', () => {
     });
 
     loop.start();
-    expect(loop.powerUps.pickups.length).toBe(15);
+    expect(loop.powerUps.pickups.length).toBe(26);
     expect(loop.player.nitroGauge).toBe(50); // Starts with 50% nitro
 
     const dt = 0.02;
     let frames = 0;
 
-    while (!loop.isFinished && frames < 2500) {
+    while (!loop.isFinished && frames < 3000) {
       frames++;
       // AI strategy: Boost if nitro > 30 and no obstacle immediately ahead
       const nextObstacle = loop.level.obstacles.find(
@@ -197,8 +198,8 @@ describe('E2E Full Game Simulation & Mechanics', () => {
     expect(pickupsCollected.length).toBeGreaterThan(0);
     // Verified pickups include milk and/or fruit
     expect(pickupsCollected.some((p) => p === 'milk' || p === 'fruit' || p === 'bento')).toBe(true);
-    // At finish line, player has crossed 5800
-    expect(loop.player.x).toBeGreaterThanOrEqual(5800);
+    // At finish line, player has crossed 14000
+    expect(loop.player.x).toBeGreaterThanOrEqual(14000);
   });
 });
 

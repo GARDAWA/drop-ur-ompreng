@@ -371,6 +371,8 @@ export default function RacePage() {
         approachingObstacleWarning={obstacleWarning}
         isFinished={isMatchFinished}
         localPlayerId={getMultiplayerService().getLocalPlayerId()}
+        startX={100}
+        finishX={14000}
         nitroGauge={nitroGauge}
         isBoosting={isBoosting}
         shieldTimer={shieldTimer}

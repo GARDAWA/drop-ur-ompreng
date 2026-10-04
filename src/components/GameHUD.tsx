@@ -20,6 +20,8 @@ interface GameHUDProps {
   nitroGauge?: number;
   isBoosting?: boolean;
   shieldTimer?: number;
+  startX?: number;
+  finishX?: number;
   onBoostStart?: () => void;
   onBoostEnd?: () => void;
   onJump?: () => void;
@@ -42,90 +44,127 @@ export const GameHUD: React.FC<GameHUDProps> = ({
   nitroGauge = 50,
   isBoosting = false,
   shieldTimer = 0,
+  startX = 100,
+  finishX = 14000,
   onBoostStart,
   onBoostEnd,
   onJump,
 }) => {
-  // Start is at 100, Finish is at 5800
+  const totalTrackMeters = finishX - startX;
   const normalizedPercent = isFinished
     ? 100
-    : Math.max(0, Math.min(100, ((currentX - 100) / 5700) * 100));
+    : Math.max(0, Math.min(100, ((currentX - startX) / totalTrackMeters) * 100));
+
   const distanceLeftMeters = isFinished
     ? 0
-    : Math.max(0, Math.round((5800 - currentX) / 10));
+    : Math.max(0, Math.round(finishX - currentX));
+
+  // Strictly filter out the local player so NO ghost clone ever appears
+  const remotePlayers = players.filter(
+    (p) => (localPlayerId ? p.id !== localPlayerId : true) && p.name !== playerName
+  );
+
+  // Live race participants sorted by position (furthest ahead first)
+  const raceLeaderboard = [
+    {
+      id: localPlayerId || 'local',
+      name: playerName || 'Kamu',
+      x: isFinished ? finishX : currentX,
+      percent: normalizedPercent,
+      finished: isFinished,
+      isLocal: true,
+    },
+    ...remotePlayers.map((p) => ({
+      id: p.id,
+      name: p.name,
+      x: p.finished ? finishX : p.x,
+      percent: p.finished
+        ? 100
+        : Math.max(0, Math.min(100, ((p.x - startX) / totalTrackMeters) * 100)),
+      finished: p.finished,
+      isLocal: false,
+    })),
+  ].sort((a, b) => {
+    if (a.finished && !b.finished) return -1;
+    if (!a.finished && b.finished) return 1;
+    return b.x - a.x;
+  });
+
+  const medals = ['🥇', '🥈', '🥉', '4️⃣'];
+  const remoteColors = [
+    { bg: 'bg-cyan-500', text: 'text-cyan-200', border: 'border-cyan-400' },
+    { bg: 'bg-fuchsia-500', text: 'text-fuchsia-200', border: 'border-fuchsia-400' },
+    { bg: 'bg-emerald-500', text: 'text-emerald-200', border: 'border-emerald-400' },
+  ];
 
   return (
-    <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-4 sm:p-6 z-20 select-none">
+    <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-3 sm:p-5 z-20 select-none">
       {/* Top HUD: Precise Multi-Player Progress Track */}
-      <div className="w-full max-w-3xl mx-auto flex flex-col gap-2">
-        <div className="bg-slate-950/90 border border-amber-500/30 rounded-2xl p-4 backdrop-blur-md shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
+      <div className="w-full max-w-4xl mx-auto flex flex-col gap-2">
+        <div className="bg-slate-950/90 border border-amber-500/30 rounded-2xl p-3 sm:p-4 backdrop-blur-md shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
           {/* Header Row */}
           <div className="flex justify-between items-center text-xs font-black text-slate-300 mb-2 px-1">
             <span className="flex items-center gap-1.5 text-amber-400">
               <span className="text-base">🏢</span> DAPUR SPPG (0m)
             </span>
 
-            <div className="flex items-center gap-3">
-              <span className="bg-slate-900 border border-slate-700 px-3 py-1 rounded-xl text-emerald-400 font-mono text-sm shadow font-bold">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <span className="bg-slate-900 border border-slate-700 px-2.5 sm:px-3 py-1 rounded-xl text-emerald-400 font-mono text-xs sm:text-sm shadow font-bold">
                 ⏱ {timeElapsed.toFixed(1)}s
               </span>
-              <span className="bg-amber-500/20 border border-amber-500/40 text-amber-300 px-3 py-1 rounded-xl text-xs font-mono font-bold">
-                {isFinished ? 'SELESAI (0m)' : `${distanceLeftMeters} m ke Sekolah`}
+              <span className="bg-amber-500/20 border border-amber-500/40 text-amber-300 px-2.5 sm:px-3 py-1 rounded-xl text-xs font-mono font-bold">
+                {isFinished ? 'SELESAI (0m)' : `${distanceLeftMeters.toLocaleString('id-ID')} m ke Sekolah`}
               </span>
-              <span className="text-xs text-slate-400 font-mono">
+              <span className="text-xs text-slate-400 font-mono font-bold">
                 {normalizedPercent.toFixed(0)}%
               </span>
             </div>
 
             <span className="flex items-center gap-1.5 text-rose-400">
-              SDN 01 MERDEKA <span className="text-base">🏫</span>
+              SDN 01 MERDEKA (14.000m) <span className="text-base">🏫</span>
             </span>
           </div>
 
           {/* Progress Track Container */}
-          <div className="relative w-full h-5 bg-slate-900 border border-slate-700/80 rounded-full px-1 flex items-center shadow-inner">
-            {/* 50% Midpoint Marker */}
-            <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-slate-700/80 z-0">
-              <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-[9px] font-mono text-slate-500 font-bold">
-                50%
-              </span>
-            </div>
+          <div className="relative w-full h-6 bg-slate-900 border border-slate-700/80 rounded-full px-1 flex items-center shadow-inner overflow-visible">
+            {/* 50% Midpoint Subtle Marker */}
+            <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-slate-700/50 z-0" />
 
             {/* Fill Bar for Local Player */}
             <div
-              className="h-3 bg-gradient-to-r from-amber-500 via-orange-400 to-emerald-400 rounded-full transition-all duration-75 shadow-lg"
+              className="h-3.5 bg-gradient-to-r from-amber-500 via-orange-400 to-emerald-400 rounded-full transition-all duration-75 shadow-lg"
               style={{ width: `${normalizedPercent}%` }}
             />
 
-            {/* Remote Players Markers */}
-            {players
-              .filter((p) => (localPlayerId ? p.id !== localPlayerId : p.name !== playerName))
-              .map((p) => {
-                const remotePercent = p.finished
-                  ? 100
-                  : Math.max(0, Math.min(100, ((p.x - 100) / 5700) * 100));
-                return (
-                  <div
-                    key={p.id}
-                    title={p.name}
-                    className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center z-10 transition-all duration-100"
-                    style={{ left: `${Math.min(97, Math.max(3, remotePercent))}%` }}
-                  >
-                    <span className="text-xs">🛵</span>
-                    <span className="text-[8px] bg-blue-600/90 text-white font-bold px-1 rounded truncate max-w-[45px] -mt-1 shadow">
-                      {p.name}
-                    </span>
-                  </div>
-                );
-              })}
+            {/* Remote Players Markers (Cleanly Staggered & Colored) */}
+            {remotePlayers.map((p, idx) => {
+              const remotePercent = p.finished
+                ? 100
+                : Math.max(0, Math.min(100, ((p.x - startX) / totalTrackMeters) * 100));
+              const styleColor = remoteColors[idx % remoteColors.length];
 
-            {/* Local Player Marker */}
+              return (
+                <div
+                  key={p.id}
+                  title={`${p.name} (${Math.round(p.x)}m)`}
+                  className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center z-10 transition-all duration-100 pointer-events-none"
+                  style={{ left: `${Math.min(97, Math.max(3, remotePercent))}%` }}
+                >
+                  <span className="text-xs filter drop-shadow">🛵</span>
+                  <span className={`text-[8px] ${styleColor.bg} text-slate-950 font-black px-1.5 py-0.2 rounded-full truncate max-w-[55px] -mt-1 shadow-md border ${styleColor.border}`}>
+                    {p.name}
+                  </span>
+                </div>
+              );
+            })}
+
+            {/* Local Player Marker (Always Prominent & Top Z-Index) */}
             <div
-              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center z-20 transition-all duration-75"
+              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center z-30 transition-all duration-75 pointer-events-none"
               style={{ left: `${Math.min(97, Math.max(3, normalizedPercent))}%` }}
             >
-              <span className="text-sm drop-shadow-md animate-bounce">🛵</span>
-              <span className="text-[9px] bg-amber-500 text-slate-950 font-black px-1.5 py-0.2 rounded-full shadow-md -mt-1">
+              <span className="text-sm drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] animate-bounce">🛵</span>
+              <span className="text-[9px] bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 font-black px-2 py-0.5 rounded-full shadow-lg border border-amber-200 -mt-1 tracking-wider">
                 KAMU
               </span>
             </div>
@@ -135,6 +174,33 @@ export const GameHUD: React.FC<GameHUDProps> = ({
               🏁
             </div>
           </div>
+
+          {/* Multiplayer Live Leaderboard Widget */}
+          {remotePlayers.length > 0 && (
+            <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-bold">
+              <span className="text-slate-400 uppercase tracking-wider text-[10px] flex items-center gap-1">
+                <span>⚡</span> Posisi Balapan:
+              </span>
+              <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto">
+                {raceLeaderboard.map((item, idx) => (
+                  <div
+                    key={item.id}
+                    className={`flex items-center gap-1 px-2 py-0.5 rounded-lg border text-xs font-semibold ${
+                      item.isLocal
+                        ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 font-bold'
+                        : 'bg-slate-900 border-slate-800 text-slate-300'
+                    }`}
+                  >
+                    <span>{medals[idx] || `${idx + 1}.`}</span>
+                    <span className="truncate max-w-[70px]">{item.name}</span>
+                    <span className="text-[10px] font-mono text-slate-400">
+                      {item.finished ? 'FINISH' : `${Math.round(item.x)}m`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Celebratory finish banner */}
@@ -218,6 +284,17 @@ export const GameHUD: React.FC<GameHUDProps> = ({
 
         {/* Instructions & Interactive Action Buttons */}
         <div className="flex items-center gap-2">
+          {/* Jump Button (Touch & Mobile Friendly) */}
+          {!isFinished && onJump && (
+            <button
+              onClick={onJump}
+              title="Lompat hindari rintangan (SPACE / ▲)"
+              className="pointer-events-auto px-4 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition active:scale-95 shadow-xl backdrop-blur cursor-pointer flex items-center gap-1.5 bg-indigo-600/90 hover:bg-indigo-500 text-white border border-indigo-400/80 shadow-indigo-600/30"
+            >
+              <span>🦘</span> LOMPAT!
+            </button>
+          )}
+
           {/* Dedicated Gas Pol Boost Button */}
           {!isFinished && (
             <button

@@ -17,31 +17,45 @@ export class LevelManager {
 
   constructor(config: LevelConfig) {
     this.groundY = config.groundY;
-    this.trackLength = config.trackLength ?? 6000;
-    this.finishX = config.finishX ?? 5800;
+    // 15,000 px track length with finish line at 14,000 px (14.000 meters journey)
+    this.trackLength = config.trackLength ?? 15000;
+    this.finishX = config.finishX ?? 14000;
     this.generateObstacles();
   }
 
   private generateObstacles(): void {
     const course: { x: number; type: ObstacleType }[] = [
-      // Stage 1: Pemanasan Keluar dari Dapur SPPG (lapang dan ritmik)
+      // STAGE 1: Pemanasan Keluar dari Dapur SPPG (0 - 2.500m)
       { x: 800, type: 'speedbump' },
-      { x: 1350, type: 'rock' },
+      { x: 1350, type: 'rock' }, // Matches unit test rock at 1350
+      { x: 1950, type: 'puddle' },
 
-      // Stage 2: Area Pasar & Perumahan Warga
-      { x: 1900, type: 'puddle' },
-      { x: 2450, type: 'cart' },
-      { x: 3000, type: 'chicken' },
+      // STAGE 2: Kawasan Perumahan & Gang Warga (2.500 - 5.500m)
+      { x: 2600, type: 'cart' },
+      { x: 3250, type: 'chicken' },
+      { x: 3900, type: 'crate' },
+      { x: 4550, type: 'puddle' },
+      { x: 5150, type: 'speedbump' },
 
-      // Stage 3: Jalur Lintas Cepat & Konstruksi
-      { x: 3550, type: 'crate' },
-      { x: 4100, type: 'rock' },
-      { x: 4650, type: 'puddle' },
+      // STAGE 3: Area Pasar Tradisional & Pertokoan (5.500 - 8.500m)
+      { x: 5800, type: 'cart' },
+      { x: 6450, type: 'chicken' },
+      { x: 7100, type: 'rock' },
+      { x: 7750, type: 'crate' },
+      { x: 8350, type: 'puddle' },
 
-      // Stage 4: Menjelang Gerbang Sekolah SDN 01 Merdeka
-      { x: 5150, type: 'cart' },
-      { x: 5450, type: 'chicken' },
-      { x: 5650, type: 'speedbump' },
+      // STAGE 4: Jalur Lintas Cepat Flyover & Proyek Konstruksi (8.500 - 11.500m)
+      { x: 9000, type: 'speedbump' },
+      { x: 9650, type: 'cart' },
+      { x: 10300, type: 'rock' },
+      { x: 10950, type: 'crate' },
+      { x: 11550, type: 'chicken' },
+
+      // STAGE 5: Jalan Protokol Menuju Gerbang SDN 01 Merdeka (11.500 - 14.000m)
+      { x: 12200, type: 'puddle' },
+      { x: 12850, type: 'cart' },
+      { x: 13450, type: 'chicken' },
+      { x: 13850, type: 'speedbump' },
     ];
 
     this.obstacles = course.map(
@@ -89,6 +103,7 @@ export class LevelManager {
             player.applyPenalty(0.3, 0.6);
             break;
         }
+        break;
       }
     }
 

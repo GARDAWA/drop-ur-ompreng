@@ -42,8 +42,8 @@ describe('GameLoop Finish Handling', () => {
     expect(loop.isRunning).toBe(true);
     expect(loop.isFinished).toBe(false);
 
-    // Place player right at the finish line (5800)
-    loop.player.x = 5800;
+    // Place player right at the finish line
+    loop.player.x = loop.level.finishX;
     loop.update(0.1, { left: false, right: false });
 
     expect(loop.isFinished).toBe(true);
@@ -54,7 +54,7 @@ describe('GameLoop Finish Handling', () => {
   it('freezes player and time elapsed once finished', () => {
     const loop = new GameLoop();
     loop.start();
-    loop.player.x = 5850;
+    loop.player.x = loop.level.finishX + 50;
     loop.update(0.1, { left: false, right: false });
 
     expect(loop.isFinished).toBe(true);

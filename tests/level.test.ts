@@ -5,15 +5,15 @@ import { Player } from '../src/game/entities/Player';
 describe('LevelManager', () => {
   it('should initialize track length and finish line', () => {
     const level = new LevelManager({ groundY: 400 });
-    expect(level.trackLength).toBe(6000);
-    expect(level.finishX).toBe(5800);
+    expect(level.trackLength).toBe(15000);
+    expect(level.finishX).toBe(14000);
   });
 
   it('should detect finish line crossed', () => {
     const level = new LevelManager({ groundY: 400 });
-    expect(level.checkFinish(5799)).toBe(false);
-    expect(level.checkFinish(5800)).toBe(true);
-    expect(level.checkFinish(5900)).toBe(true);
+    expect(level.checkFinish(13999)).toBe(false);
+    expect(level.checkFinish(14000)).toBe(true);
+    expect(level.checkFinish(14100)).toBe(true);
   });
 
   it('should trigger obstacle penalty upon collision', () => {

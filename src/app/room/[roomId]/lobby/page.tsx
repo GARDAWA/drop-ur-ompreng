@@ -151,7 +151,7 @@ export default function LobbyPage() {
               <span className="text-2xl animate-bounce">🛵</span>
               <h1 className="text-2xl font-black text-amber-400 tracking-wider">LOBBY BALAPAN</h1>
             </div>
-            <p className="text-xs text-slate-400 mt-1">Dapur SPPG ➔ SDN 01 Merdeka (5.800m)</p>
+            <p className="text-xs text-slate-400 mt-1">Dapur SPPG ➔ SDN 01 Merdeka (14.000m)</p>
           </div>
 
           <div className="flex items-center gap-2">

@@ -20,28 +20,41 @@ export class PowerUpManager {
     const airJumpY = this.groundY - 110;
 
     const coursePickups: { x: number; y: number; type: PickupType }[] = [
-      // Stage 1: Pemanasan Keluar Dapur SPPG
+      // STAGE 1: Pemanasan Keluar Dapur SPPG (0 - 2.500m)
       { x: 500, y: groundLevelY, type: 'milk' },
       { x: 1050, y: groundLevelY, type: 'fruit' },
-      { x: 1450, y: airJumpY, type: 'milk' }, // Rewarding jump clearance after rock
-      { x: 1650, y: groundLevelY, type: 'milk' },
+      { x: 1450, y: airJumpY, type: 'milk' }, // Rewarding jump clearance after rock at 1350
+      { x: 1750, y: groundLevelY, type: 'milk' },
+      { x: 2250, y: airJumpY, type: 'bento' }, // Golden Bento reward!
 
-      // Stage 2: Area Pasar Tradisional & Pemukiman
-      { x: 2150, y: groundLevelY, type: 'fruit' },
-      { x: 2450, y: airJumpY, type: 'bento' }, // Rare Golden Bento high above cart at 2450!
-      { x: 2750, y: groundLevelY, type: 'milk' },
-      { x: 3000, y: airJumpY, type: 'milk' }, // High above chicken at 3000
+      // STAGE 2: Kawasan Perumahan & Gang Warga (2.500 - 5.500m)
+      { x: 2850, y: groundLevelY, type: 'milk' },
+      { x: 3250, y: airJumpY, type: 'fruit' }, // Shield above chicken
+      { x: 3600, y: groundLevelY, type: 'milk' },
+      { x: 4200, y: airJumpY, type: 'milk' },
+      { x: 4800, y: groundLevelY, type: 'fruit' },
+      { x: 5150, y: airJumpY, type: 'bento' }, // Golden Bento!
 
-      // Stage 3: Jalur Cepat & Konstruksi
-      { x: 3550, y: airJumpY, type: 'fruit' }, // Shield above crate at 3550!
-      { x: 3850, y: groundLevelY, type: 'milk' },
-      { x: 4100, y: airJumpY, type: 'bento' }, // Golden Bento high above rock at 4100!
-      { x: 4400, y: groundLevelY, type: 'milk' },
+      // STAGE 3: Area Pasar Tradisional & Pertokoan (5.500 - 8.500m)
+      { x: 5500, y: groundLevelY, type: 'milk' },
+      { x: 6100, y: airJumpY, type: 'fruit' },
+      { x: 6750, y: groundLevelY, type: 'milk' },
+      { x: 7400, y: airJumpY, type: 'milk' },
+      { x: 8050, y: groundLevelY, type: 'bento' }, // Golden Bento reward!
 
-      // Stage 4: Menuju SDN 01 Merdeka
-      { x: 4900, y: groundLevelY, type: 'milk' },
-      { x: 5150, y: airJumpY, type: 'fruit' }, // Shield above cart at 5150
-      { x: 5450, y: airJumpY, type: 'milk' }, // Above chicken at 5450
+      // STAGE 4: Jalur Lintas Cepat Flyover & Konstruksi (8.500 - 11.500m)
+      { x: 8800, y: groundLevelY, type: 'milk' },
+      { x: 9300, y: airJumpY, type: 'fruit' }, // Shield above cart
+      { x: 9950, y: airJumpY, type: 'milk' }, // Above rock
+      { x: 10500, y: groundLevelY, type: 'milk' },
+      { x: 11100, y: airJumpY, type: 'bento' }, // Golden Bento!
+
+      // STAGE 5: Jalan Protokol Menuju SDN 01 Merdeka (11.500 - 14.000m)
+      { x: 11800, y: groundLevelY, type: 'milk' },
+      { x: 12400, y: airJumpY, type: 'fruit' },
+      { x: 13050, y: groundLevelY, type: 'milk' },
+      { x: 13450, y: airJumpY, type: 'milk' },
+      { x: 13700, y: airJumpY, type: 'bento' }, // Grand finale Golden Bento!
     ];
 
     this.pickups = coursePickups.map(
