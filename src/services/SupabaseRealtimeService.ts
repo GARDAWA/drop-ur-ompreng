@@ -155,13 +155,28 @@ export class SupabaseRealtimeService implements IMultiplayerService {
         this.channel
           .on('broadcast', { event: 'pos' }, ({ payload }) => {
             if (payload && payload.id !== this.localPlayerId) {
-              const remote = this.players.get(payload.id);
+              let remote = this.players.get(payload.id);
               if (remote) {
                 remote.x = payload.x;
                 remote.y = payload.y;
+                if (payload.name && (!remote.name || remote.name === 'Kurir Lain')) {
+                  remote.name = payload.name;
+                }
+              } else {
+                remote = {
+                  id: payload.id,
+                  name: payload.name || 'Kurir Lain',
+                  isHost: false,
+                  isReady: true,
+                  x: payload.x,
+                  y: payload.y,
+                  finished: false,
+                };
+                this.players.set(payload.id, remote);
+                this.notifyPlayerList();
               }
               this.positionListeners.forEach((cb) =>
-                cb(payload.id, payload.x, payload.y)
+                cb(payload.id, payload.x, payload.y, payload.name)
               );
             }
           })
@@ -316,12 +331,27 @@ export class SupabaseRealtimeService implements IMultiplayerService {
       }
       case 'POSITION': {
         if (msg.playerId !== this.localPlayerId) {
-          const remote = this.players.get(msg.playerId);
+          let remote = this.players.get(msg.playerId);
           if (remote) {
             remote.x = msg.x;
             remote.y = msg.y;
+            if (msg.name && (!remote.name || remote.name === 'Kurir Lain')) {
+              remote.name = msg.name;
+            }
+          } else {
+            remote = {
+              id: msg.playerId,
+              name: msg.name || 'Kurir Lain',
+              isHost: false,
+              isReady: true,
+              x: msg.x,
+              y: msg.y,
+              finished: false,
+            };
+            this.players.set(msg.playerId, remote);
+            this.notifyPlayerList();
           }
-          this.positionListeners.forEach((cb) => cb(msg.playerId, msg.x, msg.y));
+          this.positionListeners.forEach((cb) => cb(msg.playerId, msg.x, msg.y, msg.name));
         }
         break;
       }
@@ -443,13 +473,14 @@ export class SupabaseRealtimeService implements IMultiplayerService {
       this.channel.send({
         type: 'broadcast',
         event: 'pos',
-        payload: { id: this.localPlayerId, x, y },
+        payload: { id: this.localPlayerId, name: this.localPlayerName, x, y },
       }).catch(() => {});
     }
 
     this.fallbackChannel?.postMessage({
       type: 'POSITION',
       playerId: this.localPlayerId,
+      name: this.localPlayerName,
       x,
       y,
     });

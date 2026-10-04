@@ -117,4 +117,39 @@ describe('BroadcastChannelService Room & Ready State Management', () => {
       s2.destroy();
     }
   });
+
+  it('delivers player position update with player name across services', async () => {
+    const host = new BroadcastChannelService();
+    const guest = new BroadcastChannelService();
+    try {
+      const code = await host.createRoom('HostAgus');
+      await guest.joinRoom(code, 'GuestSiti');
+
+      let receivedId = '';
+      let receivedX = 0;
+      let receivedY = 0;
+      let receivedName: string | undefined = '';
+
+      host.onPlayerPositionUpdate((id, x, y, name) => {
+        receivedId = id;
+        receivedX = x;
+        receivedY = y;
+        receivedName = name;
+      });
+
+      guest.broadcastPosition(1500, 390);
+
+      // Node BroadcastChannel delivers messages asynchronously across event loop turns
+      await new Promise((resolve) => setTimeout(resolve, 30));
+
+      expect(receivedId).toBe(guest.getLocalPlayerId());
+      expect(receivedX).toBe(1500);
+      expect(receivedY).toBe(390);
+      expect(receivedName).toBe('GuestSiti');
+    } finally {
+      host.destroy();
+      guest.destroy();
+    }
+  });
 });
+

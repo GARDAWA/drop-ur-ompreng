@@ -59,10 +59,13 @@ export const GameHUD: React.FC<GameHUDProps> = ({
     ? 0
     : Math.max(0, Math.round(finishX - currentX));
 
-  // Strictly filter out the local player so NO ghost clone ever appears
-  const remotePlayers = players.filter(
-    (p) => (localPlayerId ? p.id !== localPlayerId : true) && p.name !== playerName
-  );
+  // Strictly filter out the local player by ID (or fallback to name only if localPlayerId is unavailable)
+  const remotePlayers = players.filter((p) => {
+    if (localPlayerId) {
+      return p.id !== localPlayerId;
+    }
+    return p.name !== playerName;
+  });
 
   // Live race participants sorted by position (furthest ahead first)
   const raceLeaderboard = [
@@ -92,19 +95,20 @@ export const GameHUD: React.FC<GameHUDProps> = ({
 
   const medals = ['🥇', '🥈', '🥉', '4️⃣'];
   const remoteColors = [
-    { bg: 'bg-cyan-500', text: 'text-cyan-200', border: 'border-cyan-400' },
-    { bg: 'bg-fuchsia-500', text: 'text-fuchsia-200', border: 'border-fuchsia-400' },
-    { bg: 'bg-emerald-500', text: 'text-emerald-200', border: 'border-emerald-400' },
+    { bg: 'bg-cyan-400', text: 'text-cyan-950', border: 'border-cyan-200', arrow: 'border-b-cyan-400', dot: 'bg-cyan-400' },
+    { bg: 'bg-fuchsia-400', text: 'text-fuchsia-950', border: 'border-fuchsia-200', arrow: 'border-b-fuchsia-400', dot: 'bg-fuchsia-400' },
+    { bg: 'bg-emerald-400', text: 'text-emerald-950', border: 'border-emerald-200', arrow: 'border-b-emerald-400', dot: 'bg-emerald-400' },
+    { bg: 'bg-sky-400', text: 'text-sky-950', border: 'border-sky-200', arrow: 'border-b-sky-400', dot: 'bg-sky-400' },
   ];
 
   return (
     <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-3 sm:p-5 z-20 select-none">
       {/* Top HUD: Precise Multi-Player Progress Track */}
       <div className="w-full max-w-4xl mx-auto flex flex-col gap-2">
-        <div className="bg-slate-950/90 border border-amber-500/30 rounded-2xl p-3 sm:p-4 backdrop-blur-md shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
+        <div className="bg-slate-950/95 border border-amber-500/40 rounded-2xl p-3 sm:p-4 backdrop-blur-xl shadow-[0_12px_35px_rgba(0,0,0,0.85)]">
           {/* Header Row */}
-          <div className="flex justify-between items-center text-xs font-black text-slate-300 mb-2 px-1">
-            <span className="flex items-center gap-1.5 text-amber-400">
+          <div className="flex justify-between items-center text-xs font-black text-slate-300 mb-1 px-1">
+            <span className="flex items-center gap-1.5 text-amber-400 font-bold">
               <span className="text-base">🏢</span> DAPUR SPPG (0m)
             </span>
 
@@ -115,28 +119,48 @@ export const GameHUD: React.FC<GameHUDProps> = ({
               <span className="bg-amber-500/20 border border-amber-500/40 text-amber-300 px-2.5 sm:px-3 py-1 rounded-xl text-xs font-mono font-bold">
                 {isFinished ? 'SELESAI (0m)' : `${distanceLeftMeters.toLocaleString('id-ID')} m ke Sekolah`}
               </span>
-              <span className="text-xs text-slate-400 font-mono font-bold">
+              <span className="text-xs text-slate-300 font-mono font-bold bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-700">
                 {normalizedPercent.toFixed(0)}%
               </span>
             </div>
 
-            <span className="flex items-center gap-1.5 text-rose-400">
+            <span className="flex items-center gap-1.5 text-rose-400 font-bold">
               SDN 01 MERDEKA (14.000m) <span className="text-base">🏫</span>
             </span>
           </div>
 
-          {/* Progress Track Container */}
-          <div className="relative w-full h-6 bg-slate-900 border border-slate-700/80 rounded-full px-1 flex items-center shadow-inner overflow-visible">
-            {/* 50% Midpoint Subtle Marker */}
-            <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-slate-700/50 z-0" />
+          {/* Progress Track Container with upper/lower margin for non-colliding indicators */}
+          <div className="relative w-full h-5 sm:h-6 bg-slate-900 border border-slate-700/90 rounded-full px-1 flex items-center shadow-inner overflow-visible my-7 sm:my-8">
+            {/* Distance milestones on track */}
+            <div className="absolute left-1/4 top-1 bottom-1 w-px bg-slate-700/50" />
+            <div className="absolute left-1/2 top-0.5 bottom-0.5 w-0.5 bg-slate-600/70" />
+            <div className="absolute left-3/4 top-1 bottom-1 w-px bg-slate-700/50" />
 
             {/* Fill Bar for Local Player */}
             <div
-              className="h-3.5 bg-gradient-to-r from-amber-500 via-orange-400 to-emerald-400 rounded-full transition-all duration-75 shadow-lg"
+              className="h-3 sm:h-3.5 bg-gradient-to-r from-amber-500 via-orange-400 to-emerald-400 rounded-full transition-all duration-75 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
               style={{ width: `${normalizedPercent}%` }}
             />
 
-            {/* Remote Players Markers (Cleanly Staggered & Colored) */}
+            {/* Local Player Marker (UPPER TIER: Perched strictly ABOVE the track with DOWN arrow) */}
+            <div
+              className="absolute -top-7 -translate-x-1/2 flex flex-col items-center z-30 pointer-events-none transition-all duration-75"
+              style={{ left: `${Math.min(97, Math.max(3, normalizedPercent))}%` }}
+            >
+              <div className="flex items-center gap-1 bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-black text-[10px] px-2.5 py-0.5 rounded-full shadow-[0_3px_10px_rgba(245,158,11,0.6)] border border-amber-200 tracking-wider whitespace-nowrap animate-bounce">
+                <span>🛵</span>
+                <span>KAMU</span>
+              </div>
+              <div className="w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[5px] border-t-amber-400 -mt-0.5"></div>
+            </div>
+
+            {/* Local Player Track Dot Indicator */}
+            <div
+              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 bg-amber-400 border-2 border-slate-950 rounded-full z-25 shadow-[0_0_8px_rgba(251,191,36,0.9)] pointer-events-none transition-all duration-75"
+              style={{ left: `${Math.min(97, Math.max(3, normalizedPercent))}%` }}
+            />
+
+            {/* Remote Players Markers (LOWER TIER: Perched strictly BELOW the track with UP arrow) */}
             {remotePlayers.map((p, idx) => {
               const remotePercent = p.finished
                 ? 100
@@ -144,40 +168,38 @@ export const GameHUD: React.FC<GameHUDProps> = ({
               const styleColor = remoteColors[idx % remoteColors.length];
 
               return (
-                <div
-                  key={p.id}
-                  title={`${p.name} (${Math.round(p.x)}m)`}
-                  className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center z-10 transition-all duration-100 pointer-events-none"
-                  style={{ left: `${Math.min(97, Math.max(3, remotePercent))}%` }}
-                >
-                  <span className="text-xs filter drop-shadow">🛵</span>
-                  <span className={`text-[8px] ${styleColor.bg} text-slate-950 font-black px-1.5 py-0.2 rounded-full truncate max-w-[55px] -mt-1 shadow-md border ${styleColor.border}`}>
-                    {p.name}
-                  </span>
-                </div>
+                <React.Fragment key={p.id}>
+                  {/* Remote Dot on Track */}
+                  <div
+                    className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 ${styleColor.dot} border-2 border-slate-950 rounded-full z-20 shadow pointer-events-none transition-all duration-100`}
+                    style={{ left: `${Math.min(97, Math.max(3, remotePercent))}%` }}
+                  />
+
+                  {/* Remote Pin Label Below */}
+                  <div
+                    title={`${p.name} (${Math.round(p.x)}m)`}
+                    className="absolute -bottom-6.5 -translate-x-1/2 flex flex-col items-center z-20 pointer-events-none transition-all duration-100"
+                    style={{ left: `${Math.min(97, Math.max(3, remotePercent))}%` }}
+                  >
+                    <div className={`w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-b-[5px] ${styleColor.arrow} -mb-0.5`}></div>
+                    <div className={`flex items-center gap-1 ${styleColor.bg} ${styleColor.text} font-black text-[9px] px-2 py-0.5 rounded-full shadow-md border ${styleColor.border} whitespace-nowrap`}>
+                      <span>🛵</span>
+                      <span className="truncate max-w-[65px]">{p.name}</span>
+                    </div>
+                  </div>
+                </React.Fragment>
               );
             })}
 
-            {/* Local Player Marker (Always Prominent & Top Z-Index) */}
-            <div
-              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center z-30 transition-all duration-75 pointer-events-none"
-              style={{ left: `${Math.min(97, Math.max(3, normalizedPercent))}%` }}
-            >
-              <span className="text-sm drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] animate-bounce">🛵</span>
-              <span className="text-[9px] bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 font-black px-2 py-0.5 rounded-full shadow-lg border border-amber-200 -mt-1 tracking-wider">
-                KAMU
-              </span>
-            </div>
-
             {/* Finish Line Flag */}
-            <div className="absolute right-1 top-1/2 -translate-y-1/2 text-sm z-10">
+            <div className="absolute right-1 top-1/2 -translate-y-1/2 text-sm z-10 flex items-center justify-center filter drop-shadow">
               🏁
             </div>
           </div>
 
           {/* Multiplayer Live Leaderboard Widget */}
           {remotePlayers.length > 0 && (
-            <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-bold">
+            <div className="mt-2 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-bold">
               <span className="text-slate-400 uppercase tracking-wider text-[10px] flex items-center gap-1">
                 <span>⚡</span> Posisi Balapan:
               </span>
@@ -185,14 +207,14 @@ export const GameHUD: React.FC<GameHUDProps> = ({
                 {raceLeaderboard.map((item, idx) => (
                   <div
                     key={item.id}
-                    className={`flex items-center gap-1 px-2 py-0.5 rounded-lg border text-xs font-semibold ${
+                    className={`flex items-center gap-1 px-2.5 py-0.5 rounded-lg border text-xs font-semibold ${
                       item.isLocal
-                        ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 font-bold'
+                        ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 font-bold'
                         : 'bg-slate-900 border-slate-800 text-slate-300'
                     }`}
                   >
                     <span>{medals[idx] || `${idx + 1}.`}</span>
-                    <span className="truncate max-w-[70px]">{item.name}</span>
+                    <span className="truncate max-w-[75px]">{item.name}</span>
                     <span className="text-[10px] font-mono text-slate-400">
                       {item.finished ? 'FINISH' : `${Math.round(item.x)}m`}
                     </span>

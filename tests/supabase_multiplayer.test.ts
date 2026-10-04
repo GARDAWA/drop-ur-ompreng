@@ -89,4 +89,37 @@ describe('SupabaseRealtimeService Online Multiplayer', () => {
     expect(players[0].finishTime).toBeUndefined();
     expect(players[0].isReady).toBe(false);
   });
+
+  it('delivers real-time position updates with player name between instances', async () => {
+    const host = new SupabaseRealtimeService();
+    const guest = new SupabaseRealtimeService();
+    try {
+      const code = await host.createRoom('HostMega');
+      await guest.joinRoom(code, 'GuestRudi');
+
+      let receivedId = '';
+      let receivedX = 0;
+      let receivedY = 0;
+      let receivedName: string | undefined = '';
+
+      host.onPlayerPositionUpdate((id, x, y, name) => {
+        receivedId = id;
+        receivedX = x;
+        receivedY = y;
+        receivedName = name;
+      });
+
+      guest.broadcastPosition(2400, 395);
+
+      await new Promise((resolve) => setTimeout(resolve, 30));
+
+      expect(receivedId).toBe(guest.getLocalPlayerId());
+      expect(receivedX).toBe(2400);
+      expect(receivedY).toBe(395);
+      expect(receivedName).toBe('GuestRudi');
+    } finally {
+      host.destroy();
+      guest.destroy();
+    }
+  });
 });

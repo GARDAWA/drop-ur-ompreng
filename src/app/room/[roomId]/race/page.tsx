@@ -34,6 +34,17 @@ export default function RacePage() {
   const [isBoosting, setIsBoosting] = useState(false);
   const [shieldTimer, setShieldTimer] = useState(0);
 
+  const [playerName] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('player_name') || 'Kurir MBG';
+    }
+    return 'Kurir MBG';
+  });
+
+  const [localPlayerId, setLocalPlayerId] = useState<string>(() =>
+    getMultiplayerService().getLocalPlayerId()
+  );
+
   const gameLoopRef = useRef<GameLoop | null>(null);
   const rendererRef = useRef<PixiSceneRenderer | null>(null);
   const gameAppRef = useRef<GameApp | null>(null);
@@ -43,13 +54,7 @@ export default function RacePage() {
   const inputRef = useRef({ left: false, right: false, boost: false });
   const hasFinishedRef = useRef(false);
   const countdownDoneRef = useRef(false);
-
-  const [playerName] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return sessionStorage.getItem('player_name') || 'Kurir MBG';
-    }
-    return 'Kurir MBG';
-  });
+  const lastPosUpdateRef = useRef(0);
 
   const triggerJump = useCallback(() => {
     if (
@@ -99,25 +104,60 @@ export default function RacePage() {
 
     const unsubList = service.onPlayerListUpdate((list) => {
       setPlayers(list);
+      const myId = service.getLocalPlayerId();
+      if (myId) setLocalPlayerId(myId);
     });
 
-    const unsubPos = service.onPlayerPositionUpdate((id, x, y) => {
+    const unsubPos = service.onPlayerPositionUpdate((id, x, y, name) => {
       let remote = remotePlayersRef.current.get(id);
       if (!remote) {
-        remote = new RemotePlayer({ id, name: 'Kurir Lain', startX: x, groundY: 400 });
+        remote = new RemotePlayer({ id, name: name || 'Kurir Lain', startX: x, groundY: 400 });
         remotePlayersRef.current.set(id, remote);
+      } else if (name && (remote.name === 'Kurir Lain' || remote.name === 'Kurir MBG')) {
+        remote.name = name;
       }
       remote.setTargetPosition(x, y);
 
-      // Keep player list position updated for mini-track
-      setPlayers((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, x, y } : p))
-      );
+      // Throttle React state updates to ~15 FPS so we don't spam React renders
+      const now = performance.now();
+      if (!lastPosUpdateRef.current || now - lastPosUpdateRef.current > 65) {
+        lastPosUpdateRef.current = now;
+        setPlayers((prev) => {
+          const existingIndex = prev.findIndex((p) => p.id === id);
+          if (existingIndex >= 0) {
+            const next = [...prev];
+            next[existingIndex] = {
+              ...next[existingIndex],
+              x,
+              y,
+              name: name || next[existingIndex].name,
+            };
+            return next;
+          }
+          return [
+            ...prev,
+            {
+              id,
+              name: name || 'Kurir Lain',
+              isHost: false,
+              isReady: true,
+              x,
+              y,
+              finished: false,
+            },
+          ];
+        });
+      }
     });
 
     // Ketika salah satu kurir di room finish, match otomatis selesai untuk semua kurir!
     const unsubFinish = service.onPlayerFinish((id, time) => {
       setIsMatchFinished(true);
+      setPlayers((prev) =>
+        prev.map((p) =>
+          p.id === id ? { ...p, finished: true, finishTime: time, x: 14000 } : p
+        )
+      );
       if (!hasFinishedRef.current) {
         hasFinishedRef.current = true;
         if (gameLoopRef.current) {
@@ -298,6 +338,14 @@ export default function RacePage() {
         setIsMatchFinished(true);
         setPlayerSpeedKmh(0);
         sound.playWin();
+        const myId = getMultiplayerService().getLocalPlayerId();
+        setPlayers((prev) =>
+          prev.map((p) =>
+            p.id === myId || p.name === playerName
+              ? { ...p, finished: true, finishTime: time, x: 14000 }
+              : p
+          )
+        );
         getMultiplayerService().broadcastFinish(time);
         setTimeout(() => {
           setShowResult(true);
@@ -370,7 +418,7 @@ export default function RacePage() {
         players={players}
         approachingObstacleWarning={obstacleWarning}
         isFinished={isMatchFinished}
-        localPlayerId={getMultiplayerService().getLocalPlayerId()}
+        localPlayerId={localPlayerId || getMultiplayerService().getLocalPlayerId()}
         startX={100}
         finishX={14000}
         nitroGauge={nitroGauge}

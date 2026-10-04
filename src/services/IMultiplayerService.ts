@@ -11,7 +11,7 @@ export interface PlayerState {
 
 export type PlayerListListener = (players: PlayerState[]) => void;
 export type MatchStartListener = () => void;
-export type PositionListener = (playerId: string, x: number, y: number) => void;
+export type PositionListener = (playerId: string, x: number, y: number, name?: string) => void;
 export type FinishListener = (playerId: string, finishTime: number) => void;
 export type ReplayListener = () => void;
 

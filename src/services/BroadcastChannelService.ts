@@ -13,7 +13,7 @@ type MessagePayload =
   | { type: 'STATE_SYNC'; players: PlayerState[] }
   | { type: 'READY_TOGGLE'; playerId: string; isReady: boolean }
   | { type: 'MATCH_START' }
-  | { type: 'POSITION'; playerId: string; x: number; y: number }
+  | { type: 'POSITION'; playerId: string; x: number; y: number; name?: string }
   | { type: 'FINISH'; playerId: string; finishTime: number }
   | { type: 'REPLAY' }
   | { type: 'LEAVE'; playerId: string };
@@ -22,6 +22,7 @@ export class BroadcastChannelService implements IMultiplayerService {
   private channel: BroadcastChannel | null = null;
   private currentRoomId: string | null = null;
   private localPlayerId: string = '';
+  private localPlayerName: string = '';
   private players: Map<string, PlayerState> = new Map();
 
   private playerListListeners: Set<PlayerListListener> = new Set();
@@ -54,6 +55,7 @@ export class BroadcastChannelService implements IMultiplayerService {
   private async connectChannel(roomId: string, playerName: string, isHost: boolean): Promise<void> {
     this.destroy();
     this.currentRoomId = roomId;
+    this.localPlayerName = playerName;
     this.localPlayerId = 'p_' + Math.random().toString(36).substring(2, 9);
     if (typeof BroadcastChannel !== 'undefined') {
       this.channel = new BroadcastChannel(`drop_embege_room_${roomId}`);
@@ -127,12 +129,27 @@ export class BroadcastChannelService implements IMultiplayerService {
       }
       case 'POSITION': {
         if (msg.playerId !== this.localPlayerId) {
-          const remote = this.players.get(msg.playerId);
+          let remote = this.players.get(msg.playerId);
           if (remote) {
             remote.x = msg.x;
             remote.y = msg.y;
+            if (msg.name && (!remote.name || remote.name === 'Kurir Lain')) {
+              remote.name = msg.name;
+            }
+          } else {
+            remote = {
+              id: msg.playerId,
+              name: msg.name || 'Kurir Lain',
+              isHost: false,
+              isReady: true,
+              x: msg.x,
+              y: msg.y,
+              finished: false,
+            };
+            this.players.set(msg.playerId, remote);
+            this.notifyPlayerList();
           }
-          this.positionListeners.forEach((cb) => cb(msg.playerId, msg.x, msg.y));
+          this.positionListeners.forEach((cb) => cb(msg.playerId, msg.x, msg.y, msg.name));
         }
         break;
       }
@@ -198,6 +215,7 @@ export class BroadcastChannelService implements IMultiplayerService {
     this.channel.postMessage({
       type: 'POSITION',
       playerId: this.localPlayerId,
+      name: this.localPlayerName,
       x,
       y,
     });
