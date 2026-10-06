@@ -60,8 +60,7 @@ export default function RacePage() {
     if (
       gameLoopRef.current &&
       gameLoopRef.current.isRunning &&
-      !gameLoopRef.current.isFinished &&
-      gameLoopRef.current.player.isGrounded
+      !gameLoopRef.current.isFinished
     ) {
       sound.playJump();
       gameLoopRef.current.player.jump();
@@ -82,7 +81,7 @@ export default function RacePage() {
   const toggleSound = () => {
     const next = !isMuted;
     setIsMuted(next);
-    sound.isMuted = next;
+    sound.setMuted(next);
   };
 
   const togglePause = useCallback(() => {
@@ -90,6 +89,11 @@ export default function RacePage() {
     setIsPaused((prev) => {
       const next = !prev;
       isPausedRef.current = next;
+      if (next) {
+        sound.pauseBgm();
+      } else {
+        sound.playBgm();
+      }
       return next;
     });
   }, []);
@@ -118,9 +122,9 @@ export default function RacePage() {
       }
       remote.setTargetPosition(x, y);
 
-      // Throttle React state updates to ~15 FPS so we don't spam React renders
+      // Throttle React state updates to ~30 FPS for buttery smooth progress bar without render chokes
       const now = performance.now();
-      if (!lastPosUpdateRef.current || now - lastPosUpdateRef.current > 65) {
+      if (!lastPosUpdateRef.current || now - lastPosUpdateRef.current > 33) {
         lastPosUpdateRef.current = now;
         setPlayers((prev) => {
           const existingIndex = prev.findIndex((p) => p.id === id);
@@ -189,6 +193,7 @@ export default function RacePage() {
         setCountdown(null);
         sound.playCountdown(true);
         countdownDoneRef.current = true;
+        sound.playBgm();
         if (gameLoopRef.current && !gameLoopRef.current.isRunning) {
           gameLoopRef.current.start();
         }
@@ -231,6 +236,7 @@ export default function RacePage() {
     window.addEventListener('keyup', handleKeyUp);
 
     return () => {
+      sound.stopBgm();
       clearInterval(interval);
       unsubList();
       unsubPos();
@@ -383,7 +389,7 @@ export default function RacePage() {
 
     game.app.ticker.add(tickerCallback);
     tickerCallbackRef.current = tickerCallback;
-  }, []);
+  }, [playerName]);
 
   const handlePlayAgain = () => {
     // Broadcast replay to all tabs in the room

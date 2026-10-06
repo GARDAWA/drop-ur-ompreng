@@ -148,7 +148,7 @@ export default function LobbyPage() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-4 border-b border-slate-800">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-2xl animate-bounce">🛵</span>
+              <span className="text-2xl animate-bounce">🚗</span>
               <h1 className="text-2xl font-black text-amber-400 tracking-wider">LOBBY BALAPAN</h1>
             </div>
             <p className="text-xs text-slate-400 mt-1">Dapur SPPG ➔ SDN 01 Merdeka (14.000m)</p>
@@ -189,7 +189,7 @@ export default function LobbyPage() {
             {players.length === 0 ? (
               <div className="flex justify-between items-center bg-slate-800/40 px-4 py-3 rounded-xl border border-slate-800">
                 <div className="flex items-center gap-2.5">
-                  <span className="text-xl">🛵</span>
+                  <span className="text-xl">🚗</span>
                   <span className="font-bold text-sm text-slate-200">{playerName || 'Kamu'}</span>
                   <span className="bg-amber-500/20 text-amber-300 text-[10px] px-2 py-0.5 rounded font-bold border border-amber-500/40">
                     HOST
@@ -212,7 +212,7 @@ export default function LobbyPage() {
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <span className="text-xl">🛵</span>
+                      <span className="text-xl">🚗</span>
                       <span className="font-bold text-sm text-slate-200">
                         {p.name} {isMe ? '(Kamu)' : ''}
                       </span>

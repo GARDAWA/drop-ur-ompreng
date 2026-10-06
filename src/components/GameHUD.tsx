@@ -138,17 +138,17 @@ export const GameHUD: React.FC<GameHUDProps> = ({
 
             {/* Fill Bar for Local Player */}
             <div
-              className="h-3 sm:h-3.5 bg-gradient-to-r from-amber-500 via-orange-400 to-emerald-400 rounded-full transition-all duration-75 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
+              className="h-3 sm:h-3.5 bg-gradient-to-r from-amber-500 via-orange-400 to-emerald-400 rounded-full transition-[width] duration-100 ease-linear shadow-[0_0_12px_rgba(245,158,11,0.5)]"
               style={{ width: `${normalizedPercent}%` }}
             />
 
             {/* Local Player Marker (UPPER TIER: Perched strictly ABOVE the track with DOWN arrow) */}
             <div
-              className="absolute -top-7 -translate-x-1/2 flex flex-col items-center z-30 pointer-events-none transition-all duration-75"
+              className="absolute -top-7 -translate-x-1/2 flex flex-col items-center z-30 pointer-events-none transition-[left] duration-100 ease-linear"
               style={{ left: `${Math.min(97, Math.max(3, normalizedPercent))}%` }}
             >
               <div className="flex items-center gap-1 bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-black text-[10px] px-2.5 py-0.5 rounded-full shadow-[0_3px_10px_rgba(245,158,11,0.6)] border border-amber-200 tracking-wider whitespace-nowrap animate-bounce">
-                <span>🛵</span>
+                <span>🚗</span>
                 <span>KAMU</span>
               </div>
               <div className="w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[5px] border-t-amber-400 -mt-0.5"></div>
@@ -156,7 +156,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
 
             {/* Local Player Track Dot Indicator */}
             <div
-              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 bg-amber-400 border-2 border-slate-950 rounded-full z-25 shadow-[0_0_8px_rgba(251,191,36,0.9)] pointer-events-none transition-all duration-75"
+              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 bg-amber-400 border-2 border-slate-950 rounded-full z-25 shadow-[0_0_8px_rgba(251,191,36,0.9)] pointer-events-none transition-[left] duration-100 ease-linear"
               style={{ left: `${Math.min(97, Math.max(3, normalizedPercent))}%` }}
             />
 
@@ -171,19 +171,19 @@ export const GameHUD: React.FC<GameHUDProps> = ({
                 <React.Fragment key={p.id}>
                   {/* Remote Dot on Track */}
                   <div
-                    className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 ${styleColor.dot} border-2 border-slate-950 rounded-full z-20 shadow pointer-events-none transition-all duration-100`}
+                    className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 ${styleColor.dot} border-2 border-slate-950 rounded-full z-20 shadow pointer-events-none transition-[left] duration-100 ease-linear`}
                     style={{ left: `${Math.min(97, Math.max(3, remotePercent))}%` }}
                   />
 
                   {/* Remote Pin Label Below */}
                   <div
                     title={`${p.name} (${Math.round(p.x)}m)`}
-                    className="absolute -bottom-6.5 -translate-x-1/2 flex flex-col items-center z-20 pointer-events-none transition-all duration-100"
+                    className="absolute -bottom-6.5 -translate-x-1/2 flex flex-col items-center z-20 pointer-events-none transition-[left] duration-100 ease-linear"
                     style={{ left: `${Math.min(97, Math.max(3, remotePercent))}%` }}
                   >
                     <div className={`w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-b-[5px] ${styleColor.arrow} -mb-0.5`}></div>
                     <div className={`flex items-center gap-1 ${styleColor.bg} ${styleColor.text} font-black text-[9px] px-2 py-0.5 rounded-full shadow-md border ${styleColor.border} whitespace-nowrap`}>
-                      <span>🛵</span>
+                      <span>🚗</span>
                       <span className="truncate max-w-[65px]">{p.name}</span>
                     </div>
                   </div>

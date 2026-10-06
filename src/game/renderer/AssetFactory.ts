@@ -1,7 +1,21 @@
-import { Texture } from 'pixi.js';
+import { Texture, Assets } from 'pixi.js';
 
 export class AssetFactory {
   private static cache: Map<string, Texture> = new Map();
+  private static officialCarImage: HTMLImageElement | null = null;
+  private static officialCarLoaded: boolean = false;
+
+  public static init(): void {
+    if (typeof window !== 'undefined' && !this.officialCarImage) {
+      const img = new Image();
+      img.src = '/assets/images/car.png';
+      img.onload = () => {
+        this.officialCarImage = img;
+        this.officialCarLoaded = true;
+      };
+      this.officialCarImage = img;
+    }
+  }
 
   /**
    * Helper to create a PixiJS Texture from a high-resolution 2D canvas drawing
@@ -35,427 +49,288 @@ export class AssetFactory {
   }
 
   /**
-   * Courier Scooter & Rider (Top-Tier High-Definition Arcade Sprite)
+   * MBG Delivery Car (Satuan Pelayanan Pemenuhan Gizi Truk Resmi)
    */
   public static getCourierTexture(colorScheme: 'green' | 'blue' | 'red' | 'purple' = 'green'): Texture {
-    const key = `courier_v3_${colorScheme}`;
-    return this.fromCanvas(key, 130, 90, (ctx) => {
+    const key = `mbg_sppg_car_v2_${colorScheme}`;
+    if (this.cache.has(key)) {
+      return this.cache.get(key)!;
+    }
+
+    // Try creating texture from official car image if available
+    if (typeof document !== 'undefined') {
+      const targetW = 160;
+      const targetH = 100;
+      const canvas = document.createElement('canvas');
+      canvas.width = targetW;
+      canvas.height = targetH;
+      const ctx = canvas.getContext('2d');
+
+      if (ctx) {
+        ctx.imageSmoothingEnabled = true;
+
+        if (this.officialCarImage && this.officialCarImage.complete && this.officialCarImage.naturalWidth > 0) {
+          // Render official car image with shadow and optional multiplayer player tint
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.45)';
+          ctx.beginPath();
+          ctx.ellipse(80, 94, 66, 6, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.drawImage(this.officialCarImage, 4, 8, targetW - 8, targetH - 12);
+
+          // If remote player, apply tint glow overlay
+          if (colorScheme !== 'green') {
+            const tintMap = {
+              blue: 'rgba(56, 189, 248, 0.28)',
+              red: 'rgba(244, 63, 94, 0.28)',
+              purple: 'rgba(168, 85, 247, 0.28)',
+            };
+            ctx.save();
+            ctx.globalCompositeOperation = 'source-atop';
+            ctx.fillStyle = tintMap[colorScheme] || 'rgba(56, 189, 248, 0.25)';
+            ctx.fillRect(0, 0, targetW, targetH);
+            ctx.restore();
+          }
+
+          const texture = Texture.from(canvas);
+          this.cache.set(key, texture);
+          return texture;
+        }
+      }
+    }
+
+    return this.fromCanvas(key, 160, 100, (ctx) => {
       const palette = {
         green: {
           primary: '#10b981',
           primaryDark: '#047857',
           primaryLight: '#6ee7b7',
           accent: '#f59e0b',
-          accentDark: '#b45309',
-          helmet: '#059669',
-          jacket: '#15803d',
+          window: '#38bdf8',
         },
         blue: {
           primary: '#0284c7',
           primaryDark: '#0369a1',
           primaryLight: '#38bdf8',
           accent: '#ec4899',
-          accentDark: '#be185d',
-          helmet: '#0284c7',
-          jacket: '#1e40af',
+          window: '#7dd3fc',
         },
         red: {
           primary: '#e11d48',
           primaryDark: '#be123c',
           primaryLight: '#fda4af',
           accent: '#8b5cf6',
-          accentDark: '#6d28d9',
-          helmet: '#e11d48',
-          jacket: '#991b1b',
+          window: '#38bdf8',
         },
         purple: {
           primary: '#9333ea',
           primaryDark: '#7e22ce',
           primaryLight: '#d8b4fe',
           accent: '#06b6d4',
-          accentDark: '#0e7490',
-          helmet: '#9333ea',
-          jacket: '#581c87',
+          window: '#7dd3fc',
         },
       }[colorScheme];
 
-      // Ground shadow
-      const shadowGrad = ctx.createRadialGradient(65, 82, 10, 65, 82, 52);
-      shadowGrad.addColorStop(0, 'rgba(15, 23, 42, 0.65)');
-      shadowGrad.addColorStop(1, 'rgba(15, 23, 42, 0)');
-      ctx.fillStyle = shadowGrad;
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.5)';
       ctx.beginPath();
-      ctx.ellipse(65, 82, 50, 7, 0, 0, Math.PI * 2);
+      ctx.ellipse(80, 92, 60, 7, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // --- 1. REAR WHEEL (x=28, y=66) ---
-      // Tire Rubber
-      const tireGrad1 = ctx.createRadialGradient(28, 66, 8, 28, 66, 17);
-      tireGrad1.addColorStop(0, '#334155');
-      tireGrad1.addColorStop(0.7, '#1e293b');
-      tireGrad1.addColorStop(1, '#090d16');
-      ctx.fillStyle = tireGrad1;
+      const tireGrad = ctx.createRadialGradient(38, 82, 6, 38, 82, 14);
+      tireGrad.addColorStop(0, '#334155');
+      tireGrad.addColorStop(0.7, '#1e293b');
+      tireGrad.addColorStop(1, '#090d16');
+      ctx.fillStyle = tireGrad;
       ctx.beginPath();
-      ctx.arc(28, 66, 17, 0, Math.PI * 2);
+      ctx.arc(38, 82, 14, 0, Math.PI * 2);
       ctx.fill();
 
-      // Tire tread notches
       ctx.strokeStyle = '#020617';
-      ctx.lineWidth = 1.6;
+      ctx.lineWidth = 1.4;
       for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
         ctx.beginPath();
-        ctx.moveTo(28 + Math.cos(a) * 12, 66 + Math.sin(a) * 12);
-        ctx.lineTo(28 + Math.cos(a) * 17, 66 + Math.sin(a) * 17);
+        ctx.moveTo(38 + Math.cos(a) * 10, 82 + Math.sin(a) * 10);
+        ctx.lineTo(38 + Math.cos(a) * 14, 82 + Math.sin(a) * 14);
         ctx.stroke();
       }
 
-      // Metallic rim & hub
-      const rimGrad1 = ctx.createLinearGradient(20, 58, 36, 74);
-      rimGrad1.addColorStop(0, '#f8fafc');
-      rimGrad1.addColorStop(0.5, '#94a3b8');
-      rimGrad1.addColorStop(1, '#475569');
-      ctx.fillStyle = rimGrad1;
+      const rimGrad = ctx.createLinearGradient(30, 76, 46, 88);
+      rimGrad.addColorStop(0, '#f8fafc');
+      rimGrad.addColorStop(0.5, '#94a3b8');
+      rimGrad.addColorStop(1, '#475569');
+      ctx.fillStyle = rimGrad;
       ctx.beginPath();
-      ctx.arc(28, 66, 10, 0, Math.PI * 2);
+      ctx.arc(38, 82, 8, 0, Math.PI * 2);
       ctx.fill();
-
-      // Alloy 5-spoke star
-      ctx.strokeStyle = '#f1f5f9';
-      ctx.lineWidth = 2;
-      for (let i = 0; i < 5; i++) {
-        const rad = (i * Math.PI * 2) / 5;
-        ctx.beginPath();
-        ctx.moveTo(28, 66);
-        ctx.lineTo(28 + Math.cos(rad) * 9, 66 + Math.sin(rad) * 9);
-        ctx.stroke();
-      }
       ctx.fillStyle = '#0f172a';
       ctx.beginPath();
-      ctx.arc(28, 66, 3, 0, Math.PI * 2);
+      ctx.arc(38, 82, 3, 0, Math.PI * 2);
       ctx.fill();
 
-      // --- 2. FRONT WHEEL (x=98, y=66) ---
-      const tireGrad2 = ctx.createRadialGradient(98, 66, 8, 98, 66, 17);
+      const tireGrad2 = ctx.createRadialGradient(122, 82, 6, 122, 82, 14);
       tireGrad2.addColorStop(0, '#334155');
       tireGrad2.addColorStop(0.7, '#1e293b');
       tireGrad2.addColorStop(1, '#090d16');
       ctx.fillStyle = tireGrad2;
       ctx.beginPath();
-      ctx.arc(98, 66, 17, 0, Math.PI * 2);
+      ctx.arc(122, 82, 14, 0, Math.PI * 2);
       ctx.fill();
 
+      ctx.strokeStyle = '#020617';
+      ctx.lineWidth = 1.4;
       for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
         ctx.beginPath();
-        ctx.moveTo(98 + Math.cos(a) * 12, 66 + Math.sin(a) * 12);
-        ctx.lineTo(98 + Math.cos(a) * 17, 66 + Math.sin(a) * 17);
+        ctx.moveTo(122 + Math.cos(a) * 10, 82 + Math.sin(a) * 10);
+        ctx.lineTo(122 + Math.cos(a) * 14, 82 + Math.sin(a) * 14);
         ctx.stroke();
       }
 
-      ctx.fillStyle = rimGrad1;
+      ctx.fillStyle = rimGrad;
       ctx.beginPath();
-      ctx.arc(98, 66, 10, 0, Math.PI * 2);
+      ctx.arc(122, 82, 8, 0, Math.PI * 2);
       ctx.fill();
-
-      for (let i = 0; i < 5; i++) {
-        const rad = (i * Math.PI * 2) / 5;
-        ctx.beginPath();
-        ctx.moveTo(98, 66);
-        ctx.lineTo(98 + Math.cos(rad) * 9, 66 + Math.sin(rad) * 9);
-        ctx.stroke();
-      }
       ctx.fillStyle = '#0f172a';
       ctx.beginPath();
-      ctx.arc(98, 66, 3, 0, Math.PI * 2);
+      ctx.arc(122, 82, 3, 0, Math.PI * 2);
       ctx.fill();
 
-      // Front brake disc caliper (red/gold)
-      ctx.fillStyle = '#ef4444';
-      ctx.beginPath();
-      ctx.arc(94, 63, 4, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Telescopic Front Fork (Chrome)
-      const forkGrad = ctx.createLinearGradient(98, 66, 89, 44);
-      forkGrad.addColorStop(0, '#94a3b8');
-      forkGrad.addColorStop(0.5, '#f8fafc');
-      forkGrad.addColorStop(1, '#475569');
-      ctx.strokeStyle = forkGrad;
-      ctx.lineWidth = 3.5;
-      ctx.beginPath();
-      ctx.moveTo(98, 66);
-      ctx.lineTo(89, 44);
-      ctx.stroke();
-
-      // --- 3. REAR DUAL SHOCK ABSORBER (Red Coiled Spring) ---
-      ctx.strokeStyle = '#ef4444';
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.moveTo(34, 62);
-      ctx.lineTo(39, 48);
-      ctx.stroke();
-      // Chrome damper shaft
-      ctx.strokeStyle = '#e2e8f0';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(36, 60);
-      ctx.lineTo(40, 48);
-      ctx.stroke();
-
-      // --- 4. EXHAUST & MUFFLER ---
-      const mufflerGrad = ctx.createLinearGradient(8, 61, 30, 70);
-      mufflerGrad.addColorStop(0, '#64748b');
-      mufflerGrad.addColorStop(0.3, '#f1f5f9');
-      mufflerGrad.addColorStop(0.7, '#334155');
-      mufflerGrad.addColorStop(1, '#0f172a');
-      ctx.fillStyle = mufflerGrad;
-      ctx.beginPath();
-      ctx.roundRect(10, 62, 26, 8, 4);
-      ctx.fill();
-
-      // Carbon heat shield
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(16, 63, 16, 3);
-
-      // Exhaust tip
-      ctx.fillStyle = '#020617';
-      ctx.beginPath();
-      ctx.arc(10, 66, 3.5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#f59e0b';
-      ctx.beginPath();
-      ctx.arc(10, 66, 1.5, 0, Math.PI * 2);
-      ctx.fill();
-
-      // --- 5. SCOOTER MAIN CHASSIS & FAIRINGS ---
-      // Floorboard
       ctx.fillStyle = '#1e293b';
       ctx.beginPath();
-      ctx.roundRect(36, 62, 40, 8, 3);
+      ctx.roundRect(20, 68, 120, 14, 4);
       ctx.fill();
-      ctx.fillStyle = '#334155';
-      ctx.fillRect(40, 63, 32, 2);
 
-      // Rear Body Fairing (Gloss painted curve)
-      const bodyGrad = ctx.createLinearGradient(24, 38, 70, 64);
+      const bodyGrad = ctx.createLinearGradient(12, 30, 148, 72);
       bodyGrad.addColorStop(0, palette.primaryLight);
       bodyGrad.addColorStop(0.3, palette.primary);
       bodyGrad.addColorStop(1, palette.primaryDark);
       ctx.fillStyle = bodyGrad;
       ctx.beginPath();
-      ctx.moveTo(24, 58);
-      ctx.quadraticCurveTo(22, 40, 40, 40);
-      ctx.lineTo(66, 42);
-      ctx.lineTo(74, 58);
-      ctx.quadraticCurveTo(55, 64, 24, 58);
+      ctx.moveTo(14, 70);
+      ctx.lineTo(14, 44);
+      ctx.quadraticCurveTo(16, 36, 30, 36);
+      ctx.lineTo(90, 36);
+      ctx.lineTo(90, 70);
       ctx.closePath();
       ctx.fill();
 
-      // Specular highlight line on rear body
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-      ctx.lineWidth = 1.8;
       ctx.beginPath();
-      ctx.moveTo(28, 45);
-      ctx.quadraticCurveTo(38, 42, 62, 44);
-      ctx.stroke();
-
-      // Front Leg Shield & Apron
-      const shieldGrad = ctx.createLinearGradient(66, 30, 100, 60);
-      shieldGrad.addColorStop(0, palette.primaryLight);
-      shieldGrad.addColorStop(0.4, palette.primary);
-      shieldGrad.addColorStop(1, palette.primaryDark);
-      ctx.fillStyle = shieldGrad;
-      ctx.beginPath();
-      ctx.moveTo(74, 58);
-      ctx.lineTo(72, 36);
-      ctx.quadraticCurveTo(80, 26, 94, 32);
-      ctx.lineTo(102, 52);
-      ctx.quadraticCurveTo(92, 62, 74, 58);
+      ctx.moveTo(90, 70);
+      ctx.lineTo(90, 36);
+      ctx.quadraticCurveTo(100, 28, 118, 28);
+      ctx.lineTo(148, 28);
+      ctx.quadraticCurveTo(154, 28, 154, 36);
+      ctx.lineTo(154, 70);
       ctx.closePath();
       ctx.fill();
 
-      // Front aerodynamic fender / mudguard
-      ctx.fillStyle = palette.primary;
-      ctx.beginPath();
-      ctx.moveTo(88, 56);
-      ctx.quadraticCurveTo(100, 48, 108, 60);
-      ctx.quadraticCurveTo(98, 60, 88, 56);
-      ctx.fill();
-
-      // Chrome body trim
-      ctx.strokeStyle = '#f8fafc';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
       ctx.lineWidth = 1.6;
       ctx.beginPath();
-      ctx.moveTo(38, 52);
-      ctx.lineTo(70, 53);
+      ctx.moveTo(20, 42);
+      ctx.quadraticCurveTo(55, 38, 88, 42);
       ctx.stroke();
 
-      // Dual Sporty Headlight
+      ctx.fillStyle = palette.window;
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      ctx.roundRect(94, 32, 50, 24, 4);
+      ctx.fill();
+      ctx.globalAlpha = 1.0;
+
+      ctx.strokeStyle = palette.primaryDark;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(119, 32);
+      ctx.lineTo(119, 56);
+      ctx.stroke();
+
+      const winGrad = ctx.createLinearGradient(94, 32, 144, 56);
+      winGrad.addColorStop(0, 'rgba(255,255,255,0.3)');
+      winGrad.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = winGrad;
+      ctx.fillRect(94, 32, 50, 12);
+
       ctx.fillStyle = '#f1f5f9';
       ctx.beginPath();
-      ctx.arc(101, 36, 7.5, 0, Math.PI * 2);
+      ctx.roundRect(148, 38, 10, 14, 3);
       ctx.fill();
 
-      const lensGrad = ctx.createRadialGradient(101, 36, 1, 101, 36, 7);
+      const lensGrad = ctx.createRadialGradient(153, 45, 1, 153, 45, 5);
       lensGrad.addColorStop(0, '#ffffff');
       lensGrad.addColorStop(0.5, '#fef08a');
       lensGrad.addColorStop(1, '#f59e0b');
       ctx.fillStyle = lensGrad;
       ctx.beginPath();
-      ctx.arc(101, 36, 6, 0, Math.PI * 2);
+      ctx.roundRect(149, 39, 8, 12, 2);
       ctx.fill();
 
-      // Headlight Beam projecting forward across the road
-      const beamGrad = ctx.createRadialGradient(105, 36, 4, 126, 36, 22);
-      beamGrad.addColorStop(0, 'rgba(254, 240, 138, 0.75)');
-      beamGrad.addColorStop(0.5, 'rgba(254, 240, 138, 0.35)');
+      const beamGrad = ctx.createRadialGradient(155, 45, 3, 160, 45, 16);
+      beamGrad.addColorStop(0, 'rgba(254, 240, 138, 0.6)');
       beamGrad.addColorStop(1, 'rgba(254, 240, 138, 0)');
       ctx.fillStyle = beamGrad;
       ctx.beginPath();
-      ctx.arc(105, 36, 22, -Math.PI / 4, Math.PI / 4);
+      ctx.arc(155, 45, 16, -Math.PI / 3, Math.PI / 3);
       ctx.fill();
 
-      // Handlebars & Rearview Mirrors
-      ctx.strokeStyle = '#e2e8f0';
-      ctx.lineWidth = 3;
+      ctx.fillStyle = '#ef4444';
       ctx.beginPath();
-      ctx.moveTo(86, 32);
-      ctx.lineTo(82, 22);
-      ctx.lineTo(90, 20);
-      ctx.stroke();
+      ctx.roundRect(8, 42, 8, 12, 2);
+      ctx.fill();
+      ctx.fillStyle = '#fef08a';
+      ctx.beginPath();
+      ctx.roundRect(10, 44, 4, 4, 1);
+      ctx.fill();
 
-      // Black rubber grip
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(86, 18, 7, 5);
-
-      // Chrome mirror
+      ctx.fillStyle = palette.accent;
+      ctx.fillRect(14, 34, 76, 4);
       ctx.fillStyle = '#f8fafc';
-      ctx.beginPath();
-      ctx.ellipse(82, 16, 4, 3, -0.4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#38bdf8';
-      ctx.beginPath();
-      ctx.ellipse(82, 16, 2.8, 1.8, -0.4, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fillRect(14, 35.5, 76, 1.5);
 
-      // --- 6. MBG INSULATED THERMAL BOX (Kotak Delivery MBG) ---
-      const boxGrad = ctx.createLinearGradient(16, 18, 48, 46);
+      const boxGrad = ctx.createLinearGradient(20, 8, 80, 34);
       boxGrad.addColorStop(0, '#10b981');
       boxGrad.addColorStop(0.5, '#059669');
       boxGrad.addColorStop(1, '#047857');
       ctx.fillStyle = boxGrad;
       ctx.beginPath();
-      ctx.roundRect(16, 18, 36, 30, 5);
+      ctx.roundRect(20, 8, 66, 28, 5);
       ctx.fill();
 
-      // Metallic corner reinforcements
       ctx.fillStyle = '#e2e8f0';
-      ctx.fillRect(16, 18, 6, 6);
-      ctx.fillRect(46, 18, 6, 6);
-      ctx.fillRect(16, 42, 6, 6);
-      ctx.fillRect(46, 42, 6, 6);
+      ctx.fillRect(20, 8, 5, 5);
+      ctx.fillRect(81, 8, 5, 5);
+      ctx.fillRect(20, 31, 5, 5);
+      ctx.fillRect(81, 31, 5, 5);
 
-      // Reflective Neon 3M safety band
       ctx.fillStyle = '#facc15';
-      ctx.fillRect(16, 29, 36, 5);
+      ctx.fillRect(20, 18, 66, 5);
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(16, 30.5, 36, 2);
+      ctx.fillRect(20, 19.5, 66, 2);
 
-      // MBG Brand Logo
       ctx.fillStyle = '#ffffff';
       ctx.font = '900 11px Inter, Arial, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('MBG', 34, 27);
+      ctx.fillText('MBG', 53, 17);
 
-      // Digital LED Temperature Display (74°C HANGAT)
       ctx.fillStyle = '#020617';
       ctx.beginPath();
-      ctx.roundRect(20, 37, 28, 8, 2);
-      ctx.fill();
-      ctx.fillStyle = '#ef4444';
-      ctx.beginPath();
-      ctx.arc(24, 41, 1.8, 0, Math.PI * 2);
+      ctx.roundRect(28, 26, 24, 7, 2);
       ctx.fill();
       ctx.fillStyle = '#22c55e';
-      ctx.font = '900 6.5px monospace';
+      ctx.font = '900 5.5px monospace';
       ctx.textAlign = 'left';
-      ctx.fillText('74°C', 27, 43.5);
+      ctx.fillText('74°C', 31, 32);
 
-      // --- 7. COURIER DRIVER (Indonesian Courier Outfit) ---
-      // Driver Torso & Jacket
-      const jacketGrad = ctx.createLinearGradient(52, 24, 74, 48);
-      jacketGrad.addColorStop(0, '#15803d');
-      jacketGrad.addColorStop(0.5, '#166534');
-      jacketGrad.addColorStop(1, '#14532d');
-      ctx.fillStyle = jacketGrad;
+      ctx.fillStyle = palette.primaryDark;
       ctx.beginPath();
-      ctx.roundRect(52, 26, 20, 26, 6);
+      ctx.roundRect(22, 66, 116, 6, 2);
       ctx.fill();
 
-      // Reflective safety stripes across chest & shoulder
-      ctx.fillStyle = '#a3e635';
-      ctx.fillRect(54, 34, 17, 4);
-      ctx.fillStyle = '#f8fafc';
-      ctx.fillRect(54, 35.5, 17, 1.5);
-
-      // Arm reaching forward to handlebar
-      ctx.strokeStyle = '#15803d';
-      ctx.lineWidth = 6;
-      ctx.lineCap = 'round';
+      ctx.fillStyle = '#e2e8f0';
       ctx.beginPath();
-      ctx.moveTo(62, 30);
-      ctx.lineTo(76, 28);
-      ctx.lineTo(88, 22);
-      ctx.stroke();
-
-      // Black riding glove
-      ctx.fillStyle = '#0f172a';
-      ctx.beginPath();
-      ctx.arc(88, 22, 4, 0, Math.PI * 2);
+      ctx.roundRect(56, 64, 12, 10, 2);
       ctx.fill();
-
-      // Aerodynamic Helmet
-      const helmetGrad = ctx.createRadialGradient(64, 15, 2, 64, 15, 14);
-      helmetGrad.addColorStop(0, palette.primaryLight);
-      helmetGrad.addColorStop(0.5, palette.helmet);
-      helmetGrad.addColorStop(1, palette.primaryDark);
-      ctx.fillStyle = helmetGrad;
-      ctx.beginPath();
-      ctx.arc(64, 15, 13, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Gloss visor with iridescent reflection
-      const visorGrad = ctx.createLinearGradient(66, 11, 77, 20);
-      visorGrad.addColorStop(0, '#38bdf8');
-      visorGrad.addColorStop(0.5, '#6366f1');
-      visorGrad.addColorStop(1, '#c084fc');
-      ctx.fillStyle = visorGrad;
-      ctx.beginPath();
-      ctx.roundRect(66, 11, 11, 9, 3);
-      ctx.fill();
-
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1.3;
-      ctx.beginPath();
-      ctx.moveTo(68, 13);
-      ctx.lineTo(75, 13);
-      ctx.stroke();
-
-      // Fluttering Merah-Putih scarf in the wind
-      ctx.fillStyle = '#ef4444';
-      ctx.beginPath();
-      ctx.moveTo(54, 27);
-      ctx.quadraticCurveTo(42, 20, 28, 23);
-      ctx.quadraticCurveTo(38, 28, 54, 30);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.fillStyle = '#f8fafc';
-      ctx.beginPath();
-      ctx.moveTo(54, 30);
-      ctx.quadraticCurveTo(38, 28, 28, 23);
-      ctx.quadraticCurveTo(34, 33, 54, 33);
-      ctx.closePath();
-      ctx.fill();
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(60, 65, 4, 8);
     });
   }
 

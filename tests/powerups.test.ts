@@ -19,10 +19,11 @@ describe('Nitro, Shield & Power-up Systems', () => {
 
   it('activates Nitro boost when boost input is true and gauge is available', () => {
     const initialSpeed = player.baseSpeed;
+    const initialNitro = player.nitroGauge;
     player.update(0.1, { left: false, right: false, boost: true });
 
     expect(player.isBoosting).toBe(true);
-    expect(player.nitroGauge).toBeLessThan(35); // Depleted
+    expect(player.nitroGauge).toBeLessThan(initialNitro); // Depleted
     // Player speed should be amplified by ~1.75x
     const speed = (player.x - 100) / 0.1;
     expect(speed).toBeGreaterThan(initialSpeed * 1.5);

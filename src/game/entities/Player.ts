@@ -27,7 +27,7 @@ export class Player {
   public gravity: number;
   public groundY: number;
   public speedModifier: number = 1.0;
-  public nitroGauge: number = 35; // 0 to 100
+  public nitroGauge: number = 50;
   public isBoosting: boolean = false;
   public shieldTimer: number = 0; // seconds remaining
 

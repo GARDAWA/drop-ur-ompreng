@@ -2,7 +2,6 @@ import { Application, Container, Sprite, Graphics, Text, TextStyle } from 'pixi.
 import { GameLoop } from '../core/GameLoop';
 import { RemotePlayer } from '../entities/RemotePlayer';
 import { AssetFactory } from './AssetFactory';
-import { sound } from '../audio/SoundEffects';
 
 interface Particle {
   x: number;
@@ -48,6 +47,7 @@ export class PixiSceneRenderer {
   constructor(app: Application, gameLoop: GameLoop) {
     this.app = app;
     this.gameLoop = gameLoop;
+    AssetFactory.init();
 
     this.stageContainer = new Container();
     this.app.stage.addChild(this.stageContainer);
@@ -104,7 +104,7 @@ export class PixiSceneRenderer {
         distance: 2,
       },
     });
-    this.playerBadge = new Text({ text: '🛵 KAMU (MBG)', style: badgeStyle });
+    this.playerBadge = new Text({ text: '🚗 KAMU (MBG)', style: badgeStyle });
     this.playerBadge.anchor.set(0.5, 1.0);
     this.entitiesLayer.addChild(this.playerBadge);
 
@@ -118,21 +118,19 @@ export class PixiSceneRenderer {
 
     // --- 1. GLORIOUS INDONESIAN MORNING SUNSHINE SKY ---
     const skyG = new Graphics();
+    const skyW = 20000;
 
-    // Vibrant tropical daylight sky gradient bands
-    skyG.rect(0, 0, 7600, groundY - 240).fill(0x0284c7); // Deep tropical azure blue
-    skyG.rect(0, groundY - 240, 7600, 70).fill(0x0ea5e9); // Cerulean sky
-    skyG.rect(0, groundY - 170, 7600, 65).fill(0x38bdf8); // Light sky blue
-    skyG.rect(0, groundY - 105, 7600, 55).fill(0x7dd3fc); // Horizon soft cyan
-    skyG.rect(0, groundY - 50, 7600, 30).fill(0xfef08a); // Warm morning golden sunlight
-    skyG.rect(0, groundY - 20, 7600, 20).fill(0xffedd5); // Soft warm peach at horizon
+    skyG.rect(0, 0, skyW, groundY - 240).fill(0x0284c7);
+    skyG.rect(0, groundY - 240, skyW, 70).fill(0x0ea5e9);
+    skyG.rect(0, groundY - 170, skyW, 65).fill(0x38bdf8);
+    skyG.rect(0, groundY - 105, skyW, 55).fill(0x7dd3fc);
+    skyG.rect(0, groundY - 50, skyW, 30).fill(0xfef08a);
+    skyG.rect(0, groundY - 20, skyW, 20).fill(0xffedd5);
 
-    // Radiant Morning Sun (x=1150, y=groundY - 260)
-    skyG.circle(1150, groundY - 260, 110).fill({ color: 0xfde047, alpha: 0.18 }); // Broad corona
-    skyG.circle(1150, groundY - 260, 75).fill({ color: 0xfef08a, alpha: 0.35 }); // Mid glow
-    skyG.circle(1150, groundY - 260, 48).fill(0xffffff); // Brilliant white sun core
+    skyG.circle(1150, groundY - 260, 110).fill({ color: 0xfde047, alpha: 0.18 });
+    skyG.circle(1150, groundY - 260, 75).fill({ color: 0xfef08a, alpha: 0.35 });
+    skyG.circle(1150, groundY - 260, 48).fill(0xffffff);
 
-    // Soft morning sun rays
     for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 6) {
       skyG.moveTo(1150, groundY - 260);
       skyG.lineTo(
@@ -142,8 +140,7 @@ export class PixiSceneRenderer {
       skyG.stroke({ color: 0xfef08a, width: 8, alpha: 0.15 });
     }
 
-    // Fluffy White Cumulus Clouds (Soft morning clouds)
-    for (let x = 80; x < 7500; x += 480) {
+    for (let x = 80; x < skyW; x += 480) {
       const cy = groundY - 240 + Math.sin(x * 0.004) * 25;
       // Cloud base shadow (soft pastel lilac/blue)
       skyG.ellipse(x, cy + 6, 75, 22).fill({ color: 0xbfdbfe, alpha: 0.6 });
@@ -158,7 +155,7 @@ export class PixiSceneRenderer {
 
     // --- 2. MAJESTIC INDONESIAN VOLCANOES (Gunung Salak / Merapi Ridge) ---
     const mtnG = new Graphics();
-    for (let x = 0; x < 7600; x += 900) {
+    for (let x = 0; x < skyW; x += 900) {
       // Tier 1: Far Misty Volcano Peak (Atmospheric haze soft blue)
       mtnG.moveTo(x - 120, groundY - 30);
       mtnG.lineTo(x + 320, groundY - 210);
@@ -363,7 +360,7 @@ export class PixiSceneRenderer {
       this.roadLayer.addChild(label);
     };
 
-    drawRoadStencil(160, 'START ➔ DAPUR SPPG MANDIRI', '🛵');
+    drawRoadStencil(160, 'START ➔ DAPUR SPPG MANDIRI', '🚗');
     drawRoadStencil(2600, 'ZONA PERUMAHAN & GANG WARGA', '🏡');
     drawRoadStencil(5800, 'ZONA PASAR TRADISIONAL', '🍲');
     drawRoadStencil(9000, 'JALUR CEPAT FLYOVER & PROYEK', '⚠️');
@@ -619,8 +616,9 @@ export class PixiSceneRenderer {
     this.skyLayer.x = camX * 0.75; // Slow sky scroll
     this.mountainsLayer.x = camX * 0.45; // Mid-distance mountain scroll
 
-    // 3. Sync animated obstacle positions (e.g. hopping chicken)
+    // 3. Sync animated obstacle positions (e.g. hopping chicken) with danger pulsing tint
     const obstacles = this.gameLoop.level.obstacles;
+    const pulseFactor = 0.85 + Math.sin(this.animTimer * 12) * 0.15;
     for (let i = 0; i < obstacles.length; i++) {
       if (this.obstacleSprites[i]) {
         let offsetX = 0;
@@ -635,10 +633,18 @@ export class PixiSceneRenderer {
           default: offsetX = -13; offsetY = -12;
         }
         this.obstacleSprites[i].position.set(obstacles[i].x + offsetX, obstacles[i].y + offsetY);
+        // Subtle pulsing danger brightness for nearby obstacles (< 450px ahead)
+        const dist = obstacles[i].x - player.x;
+        if (dist > 0 && dist < 450) {
+          this.obstacleSprites[i].alpha = 1.0;
+          this.obstacleSprites[i].scale.set(1.0 + Math.sin(this.animTimer * 14) * 0.04);
+        } else {
+          this.obstacleSprites[i].scale.set(1.0);
+        }
       }
     }
 
-    // 3b. Sync nutrient pickup positions & floating bobbing
+    // 3b. Sync nutrient pickup positions & floating bobbing with golden glowing aura
     const pickups = this.gameLoop.powerUps.pickups;
     for (let i = 0; i < pickups.length; i++) {
       const p = pickups[i];
@@ -648,9 +654,10 @@ export class PixiSceneRenderer {
           s.visible = false;
         } else {
           s.visible = true;
-          const bobbing = Math.sin(this.animTimer * 4 + p.x * 0.05) * 4;
+          const bobbing = Math.sin(this.animTimer * 5 + p.x * 0.05) * 5;
           s.position.set(p.x + p.width / 2, p.y + p.height / 2 + bobbing);
-          s.scale.set(1 + Math.sin(this.animTimer * 6 + p.x) * 0.06);
+          const auraScale = 1.05 + Math.sin(this.animTimer * 8 + p.x) * 0.08;
+          s.scale.set(auraScale);
         }
       }
     }
@@ -732,7 +739,7 @@ export class PixiSceneRenderer {
         this.entitiesLayer.addChild(sprite);
 
         const badge = new Text({
-          text: `🛵 ${remote.name}`,
+          text: `🚗 ${remote.name}`,
           style: new TextStyle({
             fontSize: 10,
             fontWeight: '900',
@@ -755,13 +762,12 @@ export class PixiSceneRenderer {
     // 6. Trigger Finish Confetti Blast at School Gate
     if (this.gameLoop.isFinished && !this.finishConfettiTriggered) {
       this.finishConfettiTriggered = true;
-      sound.playWin();
 
       // Spawn 140 vibrant celebratory confetti particles
       const confettiColors = [0xef4444, 0x3b82f6, 0x10b981, 0xfacc15, 0xa855f7, 0xffffff];
       for (let i = 0; i < 140; i++) {
         this.particles.push({
-          x: 5800 + (Math.random() * 140 - 70),
+          x: this.gameLoop.level.finishX + (Math.random() * 140 - 70),
           y: player.y - 90,
           vx: (Math.random() - 0.5) * 550,
           vy: -(160 + Math.random() * 400),

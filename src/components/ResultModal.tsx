@@ -21,7 +21,7 @@ export const ResultModal: React.FC<ResultModalProps> = ({
     return (a.finishTime ?? 999999) - (b.finishTime ?? 999999);
   });
 
-  const medals = ['🥇', '🥈', '🥉', '🛵'];
+  const medals = ['🥇', '🥈', '🥉', '🚗'];
   const rankNames = ['JUARA 1', 'JUARA 2', 'JUARA 3', 'KURIR 4'];
 
   const handlePlayAgain = () => {
@@ -60,7 +60,7 @@ export const ResultModal: React.FC<ResultModalProps> = ({
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">{medals[idx] || '🛵'}</span>
+                  <span className="text-2xl">{medals[idx] || '🚗'}</span>
                   <div className="text-left">
                     <div className="font-extrabold text-sm">{p.name}</div>
                     <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">

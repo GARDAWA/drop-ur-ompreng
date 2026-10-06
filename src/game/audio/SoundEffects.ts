@@ -5,6 +5,58 @@
 export class SoundEffects {
   private ctx: AudioContext | null = null;
   public isMuted: boolean = false;
+  private bgmAudio: HTMLAudioElement | null = null;
+  private bgmInitialized: boolean = false;
+
+  public initBgm(src: string = '/assets/audio/bgm.mp3', volume: number = 0.4): void {
+    if (typeof window === 'undefined') return;
+    if (!this.bgmAudio) {
+      this.bgmAudio = new Audio(src);
+      this.bgmAudio.loop = true;
+      this.bgmAudio.preload = 'auto';
+      this.bgmAudio.volume = volume;
+    }
+  }
+
+  public playBgm(): void {
+    if (this.isMuted) return;
+    if (typeof window === 'undefined') return;
+    if (!this.bgmAudio) {
+      this.initBgm();
+    }
+    if (this.bgmAudio) {
+      this.bgmAudio.volume = 0.4;
+      const playPromise = this.bgmAudio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          // Autoplay policy prevented playback until user gestures
+        });
+      }
+    }
+  }
+
+  public pauseBgm(): void {
+    if (this.bgmAudio) {
+      this.bgmAudio.pause();
+    }
+  }
+
+  public stopBgm(): void {
+    if (this.bgmAudio) {
+      this.bgmAudio.pause();
+      this.bgmAudio.currentTime = 0;
+    }
+  }
+
+  public setMuted(muted: boolean): void {
+    this.isMuted = muted;
+    if (this.bgmAudio) {
+      this.bgmAudio.muted = muted;
+      if (!muted && !this.bgmAudio.paused) {
+        this.bgmAudio.play().catch(() => {});
+      }
+    }
+  }
 
   private initCtx(): AudioContext | null {
     if (typeof window === 'undefined') return null;
