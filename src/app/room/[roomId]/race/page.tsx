@@ -154,26 +154,22 @@ export default function RacePage() {
       }
     });
 
-    // Ketika salah satu kurir di room finish, match otomatis selesai untuk semua kurir!
+    // Ketika salah satu kurir di room finish, catat status finished pemain tersebut
     const unsubFinish = service.onPlayerFinish((id, time) => {
-      setIsMatchFinished(true);
-      setPlayers((prev) =>
-        prev.map((p) =>
+      setPlayers((prev) => {
+        const next = prev.map((p) =>
           p.id === id ? { ...p, finished: true, finishTime: time, x: 14000 } : p
-        )
-      );
-      if (!hasFinishedRef.current) {
-        hasFinishedRef.current = true;
-        if (gameLoopRef.current) {
-          gameLoopRef.current.isRunning = false;
-          gameLoopRef.current.isFinished = true;
+        );
+        // Only set match finished if ALL players in room have finished
+        const allDone = next.length > 0 && next.every((p) => p.finished);
+        if (allDone) {
+          setIsMatchFinished(true);
         }
-        setPlayerSpeedKmh(0);
-        sound.playWin();
-        setTimeout(() => {
-          setShowResult(true);
-        }, 1200);
-      } else {
+        return next;
+      });
+
+      // If local player finished too or match fully done, show result podium
+      if (hasFinishedRef.current) {
         setShowResult(true);
       }
     });
@@ -341,7 +337,6 @@ export default function RacePage() {
       },
       onFinish: (time) => {
         hasFinishedRef.current = true;
-        setIsMatchFinished(true);
         setPlayerSpeedKmh(0);
         sound.playWin();
         const myId = getMultiplayerService().getLocalPlayerId();
@@ -353,6 +348,14 @@ export default function RacePage() {
           )
         );
         getMultiplayerService().broadcastFinish(time);
+
+        // Submit to global Supabase leaderboard
+        import('@/lib/supabase/leaderboard').then(({ submitScore }) => {
+          const authId = typeof window !== 'undefined' ? sessionStorage.getItem('player_auth_id') : undefined;
+          submitScore(playerName, time, authId || undefined).catch(() => {});
+        });
+
+        // Check if all players in room have finished
         setTimeout(() => {
           setShowResult(true);
         }, 1200);

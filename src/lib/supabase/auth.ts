@@ -33,6 +33,8 @@ export async function signInAsGuest(username: string, password?: string): Promis
 
       if (!anonError && anonData?.user) {
         if (typeof window !== 'undefined') {
+          localStorage.setItem('player_name', username.trim());
+          localStorage.setItem('player_auth_id', anonData.user.id);
           sessionStorage.setItem('player_name', username.trim());
           sessionStorage.setItem('player_auth_id', anonData.user.id);
         }
@@ -56,6 +58,8 @@ export async function signInAsGuest(username: string, password?: string): Promis
 
     if (!signInError && signInData?.user) {
       if (typeof window !== 'undefined') {
+        localStorage.setItem('player_name', username.trim());
+        localStorage.setItem('player_auth_id', signInData.user.id);
         sessionStorage.setItem('player_name', username.trim());
         sessionStorage.setItem('player_auth_id', signInData.user.id);
       }
@@ -82,6 +86,8 @@ export async function signInAsGuest(username: string, password?: string): Promis
 
     if (!signUpError && signUpData?.user) {
       if (typeof window !== 'undefined') {
+        localStorage.setItem('player_name', username.trim());
+        localStorage.setItem('player_auth_id', signUpData.user.id);
         sessionStorage.setItem('player_name', username.trim());
         sessionStorage.setItem('player_auth_id', signUpData.user.id);
       }

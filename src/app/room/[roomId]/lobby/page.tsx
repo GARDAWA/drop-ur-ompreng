@@ -254,7 +254,7 @@ export default function LobbyPage() {
           </button>
 
           {/* Start Button (Host only or Solo) */}
-          {isHost && (
+          {isHost ? (
             <button
               id="lobby-start-btn"
               onClick={startRace}
@@ -273,6 +273,10 @@ export default function LobbyPage() {
                 ? 'Mulai Balapan! 🏁'
                 : `Tunggu Siap (${readyCount}/${players.length}) ⏳`}
             </button>
+          ) : (
+            <div className="flex-1 py-3.5 px-4 rounded-xl font-bold text-xs uppercase tracking-wider bg-slate-900 border border-slate-800 text-slate-400 text-center flex items-center justify-center">
+              Menunggu Host memulai balapan... ⏳
+            </div>
           )}
         </div>
 

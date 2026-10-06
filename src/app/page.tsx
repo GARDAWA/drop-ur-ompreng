@@ -18,10 +18,10 @@ export default function HomePage() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const storedName = sessionStorage.getItem('player_name');
+      const storedName = localStorage.getItem('player_name') || sessionStorage.getItem('player_name');
       if (storedName) {
         setName(storedName);
-        setAuthStatus(`Login: ${storedName}`);
+        setAuthStatus(`Tersimpan: ${storedName}`);
       }
     }
   }, []);
