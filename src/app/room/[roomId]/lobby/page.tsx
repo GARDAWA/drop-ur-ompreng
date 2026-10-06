@@ -111,9 +111,9 @@ export default function LobbyPage() {
   const myPlayer =
     players.find((p) => p.id === localId) || players.find((p) => p.name === playerName);
 
-  // Jika bermain sendiri di room, player otomatis bertindak sebagai Host
+  // Jika bermain sendiri di room, player bertindak sebagai Host. Jika multiplayer, cek flag isHost yang sebenarnya
   const isHost =
-    players.length <= 1 ||
+    players.length === 1 ||
     Boolean(myPlayer?.isHost) ||
     (typeof window !== 'undefined' && sessionStorage.getItem(`is_host_${roomId}`) === 'true');
 

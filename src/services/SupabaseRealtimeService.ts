@@ -80,6 +80,26 @@ export class SupabaseRealtimeService implements IMultiplayerService {
       typeof window !== 'undefined' &&
       sessionStorage.getItem(`is_host_${normalizedCode}`) === 'true';
 
+    // Verify room existence in Supabase database if connected
+    if (this.supabase && !storedHost) {
+      try {
+        const { data, error } = await this.supabase
+          .from('rooms')
+          .select('id, code, status')
+          .eq('code', normalizedCode)
+          .maybeSingle();
+
+        if (error || !data) {
+          return false;
+        }
+        if (data.status === 'in_race' || data.status === 'closed') {
+          return false;
+        }
+      } catch {
+        // Network resilience: if DB check fails, proceed with connection attempt
+      }
+    }
+
     this.isHost = storedHost;
     await this.connect(normalizedCode, playerName, this.isHost);
     return true;

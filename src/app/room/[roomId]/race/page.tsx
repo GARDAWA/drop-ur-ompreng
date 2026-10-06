@@ -412,7 +412,7 @@ export default function RacePage() {
   };
 
   return (
-    <main className="relative w-screen h-screen overflow-hidden bg-slate-950 select-none">
+    <main className="relative w-screen h-[100dvh] overflow-hidden bg-slate-950 select-none">
       <CanvasView onGameReady={handleGameReady} onCanvasClick={triggerJump} />
       <GameHUD
         countdown={countdown}

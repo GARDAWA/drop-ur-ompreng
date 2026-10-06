@@ -102,7 +102,15 @@ export const GameHUD: React.FC<GameHUDProps> = ({
   ];
 
   return (
-    <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-3 sm:p-5 z-20 select-none">
+    <div
+      className="absolute inset-0 pointer-events-none flex flex-col justify-between p-3 sm:p-5 z-20 select-none"
+      style={{
+        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)',
+        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.25rem)',
+        paddingLeft: 'calc(env(safe-area-inset-left, 0px) + 0.75rem)',
+        paddingRight: 'calc(env(safe-area-inset-right, 0px) + 0.75rem)',
+      }}
+    >
       {/* Top HUD: Precise Multi-Player Progress Track */}
       <div className="w-full max-w-4xl mx-auto flex flex-col gap-2">
         <div className="bg-slate-950/95 border border-amber-500/40 rounded-2xl p-3 sm:p-4 backdrop-blur-xl shadow-[0_12px_35px_rgba(0,0,0,0.85)]">
@@ -262,36 +270,36 @@ export const GameHUD: React.FC<GameHUDProps> = ({
       )}
 
       {/* Bottom Controls & Speedometer */}
-      <div className="flex justify-between items-end gap-3">
+      <div className="flex justify-between items-end gap-3 pb-3 sm:pb-0">
         {/* Speedometer & Nitro Cockpit */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          <div className="bg-slate-950/90 border border-slate-700/80 px-4 py-3 rounded-2xl backdrop-blur-md shadow-2xl flex items-center gap-3.5">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+          <div className="bg-slate-950/90 border border-slate-700/80 px-3 sm:px-4 py-2 sm:py-3 rounded-2xl backdrop-blur-md shadow-2xl flex items-center gap-2.5 sm:gap-3.5">
             <div className="text-center">
-              <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Kecepatan</div>
-              <div className="text-xl sm:text-2xl font-black font-mono text-amber-400">
-                {isFinished ? 0 : playerSpeedKmh} <span className="text-xs font-normal text-slate-300">km/h</span>
+              <div className="text-[9px] sm:text-[10px] uppercase font-bold text-slate-400 tracking-wider">Kecepatan</div>
+              <div className="text-lg sm:text-2xl font-black font-mono text-amber-400">
+                {isFinished ? 0 : playerSpeedKmh} <span className="text-[10px] sm:text-xs font-normal text-slate-300">km/h</span>
               </div>
             </div>
-            <div className="h-8 w-px bg-slate-800"></div>
+            <div className="h-7 sm:h-8 w-px bg-slate-800"></div>
             <div>
-              <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Kurir</div>
-              <div className="text-xs sm:text-sm font-bold text-slate-200 truncate max-w-[110px]">
+              <div className="text-[9px] sm:text-[10px] uppercase font-bold text-slate-400 tracking-wider">Kurir</div>
+              <div className="text-xs sm:text-sm font-bold text-slate-200 truncate max-w-[80px] sm:max-w-[110px]">
                 {playerName}
               </div>
             </div>
           </div>
 
           {/* Nitro Energy Dashboard */}
-          <div className={`bg-slate-950/90 border ${isBoosting ? 'border-orange-500 shadow-[0_0_20px_rgba(249,115,22,0.6)]' : 'border-slate-700/80'} px-3.5 py-2.5 rounded-2xl backdrop-blur-md shadow-2xl flex flex-col gap-1 transition-all`}>
-            <div className="flex justify-between items-center gap-4 text-[10px] font-black uppercase tracking-wider">
+          <div className={`bg-slate-950/90 border ${isBoosting ? 'border-orange-500 shadow-[0_0_20px_rgba(249,115,22,0.6)]' : 'border-slate-700/80'} px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-2xl backdrop-blur-md shadow-2xl flex flex-col gap-1 transition-all`}>
+            <div className="flex justify-between items-center gap-2 sm:gap-4 text-[9px] sm:text-[10px] font-black uppercase tracking-wider">
               <span className="flex items-center gap-1 text-orange-400">
-                🔥 GAS POL (NITRO)
+                🔥 NITRO
               </span>
               <span className={`font-mono font-bold ${nitroGauge > 20 ? 'text-amber-300' : 'text-slate-500'}`}>
                 {Math.round(nitroGauge)}%
               </span>
             </div>
-            <div className="w-28 sm:w-36 h-3 bg-slate-900 border border-slate-700 rounded-full overflow-hidden p-0.5 shadow-inner">
+            <div className="w-20 sm:w-36 h-2.5 sm:h-3 bg-slate-900 border border-slate-700 rounded-full overflow-hidden p-0.5 shadow-inner">
               <div
                 className={`h-full rounded-full transition-all duration-75 ${
                   isBoosting
@@ -304,16 +312,17 @@ export const GameHUD: React.FC<GameHUDProps> = ({
           </div>
         </div>
 
-        {/* Instructions & Interactive Action Buttons */}
-        <div className="flex items-center gap-2">
+        {/* Instructions & Interactive Action Buttons (Ergonomic Touch Positioning) */}
+        <div className="flex items-center gap-2 mb-2 sm:mb-0">
           {/* Jump Button (Touch & Mobile Friendly) */}
           {!isFinished && onJump && (
             <button
               onClick={onJump}
+              onTouchStart={(e) => { e.preventDefault(); onJump(); }}
               title="Lompat hindari rintangan (SPACE / ▲)"
-              className="pointer-events-auto px-4 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition active:scale-95 shadow-xl backdrop-blur cursor-pointer flex items-center gap-1.5 bg-indigo-600/90 hover:bg-indigo-500 text-white border border-indigo-400/80 shadow-indigo-600/30"
+              className="pointer-events-auto px-5 sm:px-4 py-3.5 sm:py-3 rounded-2xl text-xs sm:text-xs font-black uppercase tracking-wider transition active:scale-95 shadow-xl backdrop-blur cursor-pointer flex items-center gap-1.5 bg-indigo-600/95 hover:bg-indigo-500 text-white border border-indigo-400/80 shadow-indigo-600/30"
             >
-              <span>🦘</span> LOMPAT!
+              <span className="text-base sm:text-xs">🦘</span> LOMPAT!
             </button>
           )}
 
@@ -326,7 +335,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
               onTouchEnd={(e) => { e.preventDefault(); onBoostEnd?.(); }}
               disabled={nitroGauge < 1}
               title="Tekan dan tahan untuk Gas Pol Nitro (Shift / S)"
-              className={`pointer-events-auto px-4 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition active:scale-95 shadow-xl backdrop-blur cursor-pointer flex items-center gap-1.5 ${
+              className={`pointer-events-auto px-5 sm:px-4 py-3.5 sm:py-3 rounded-2xl text-xs sm:text-xs font-black uppercase tracking-wider transition active:scale-95 shadow-xl backdrop-blur cursor-pointer flex items-center gap-1.5 ${
                 isBoosting
                   ? 'bg-gradient-to-r from-orange-500 to-rose-600 text-white border border-amber-300 shadow-[0_0_20px_rgba(249,115,22,0.8)] animate-pulse'
                   : nitroGauge > 10
@@ -334,7 +343,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
                   : 'bg-slate-800 text-slate-500 border border-slate-700 opacity-60 cursor-not-allowed'
               }`}
             >
-              <span>🔥</span> GAS POL!
+              <span className="text-base sm:text-xs">🔥</span> GAS POL!
             </button>
           )}
 
@@ -355,7 +364,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
           <button
             onClick={onToggleSound}
             title={isMuted ? 'Nyalakan Audio' : 'Matikan Audio'}
-            className="pointer-events-auto bg-slate-900/90 hover:bg-slate-800 border border-slate-700 px-4 py-3 rounded-2xl text-xs font-bold text-slate-200 transition active:scale-95 shadow-xl backdrop-blur cursor-pointer"
+            className="pointer-events-auto bg-slate-900/90 hover:bg-slate-800 border border-slate-700 px-3.5 sm:px-4 py-3 rounded-2xl text-xs font-bold text-slate-200 transition active:scale-95 shadow-xl backdrop-blur cursor-pointer"
           >
             {isMuted ? '🔇' : '🔊'}
           </button>

@@ -20,6 +20,19 @@ export async function signInAsGuest(username: string, password?: string): Promis
   try {
     const supabase = getSupabaseClient();
 
+    // Upsert into custom profiles table for permanent player registry
+    try {
+      await supabase.from('profiles').upsert(
+        {
+          username: cleanUsername,
+          password_hash: cleanPassword,
+        },
+        { onConflict: 'username' }
+      );
+    } catch {
+      // Non-blocking if table permissions restrict upsert
+    }
+
     // 1. First attempt: Supabase native anonymous sign-in if enabled
     try {
       const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously({
