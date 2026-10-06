@@ -21,8 +21,8 @@ export async function signUpUser(username: string, password: string): Promise<Au
     return { success: false, error: 'Password minimal 6 karakter!' };
   }
 
-  const normalizedUser = cleanUsername.toLowerCase().replace(/[^a-z0-9_-]/g, '');
-  const syntheticEmail = `${normalizedUser}@dropembege.game`;
+  const normalizedUser = cleanUsername.toLowerCase().replace(/[^a-z0-9]/g, '') || `user${Date.now()}`;
+  const syntheticEmail = `${normalizedUser}@gmail.com`;
 
   try {
     const supabase = getSupabaseClient();
@@ -107,8 +107,8 @@ export async function signInUser(username: string, password: string): Promise<Au
     return { success: false, error: 'Masukkan password kamu!' };
   }
 
-  const normalizedUser = cleanUsername.toLowerCase().replace(/[^a-z0-9_-]/g, '');
-  const syntheticEmail = `${normalizedUser}@dropembege.game`;
+  const normalizedUser = cleanUsername.toLowerCase().replace(/[^a-z0-9]/g, '') || `user${Date.now()}`;
+  const syntheticEmail = `${normalizedUser}@gmail.com`;
 
   try {
     const supabase = getSupabaseClient();
