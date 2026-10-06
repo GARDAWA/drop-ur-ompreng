@@ -2,17 +2,10 @@ import { getSupabaseClient } from './client';
 
 export interface AuthResult {
   success: boolean;
-  user?: {
-    id: string;
-    username: string;
-  };
+  user?: { id: string; username: string };
   error?: string;
 }
 
-/**
- * Hash password with SHA-256 + random salt (no Supabase Auth needed).
- * Stored format: "salt:hash" so we can verify without sending password anywhere.
- */
 export async function hashPassword(password: string, salt: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(salt + password);
@@ -22,75 +15,41 @@ export async function hashPassword(password: string, salt: string): Promise<stri
 }
 
 function generateSalt(): string {
-  const array = new Uint8Array(16);
-  crypto.getRandomValues(array);
-  return Array.from(array).map((b) => b.toString(16).padStart(2, '0')).join('');
+  const arr = new Uint8Array(16);
+  crypto.getRandomValues(arr);
+  return Array.from(arr).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-/**
- * Register a new user with username and password (custom credential auth).
- * NO Supabase Auth emails — direct profiles table insert.
- */
 export async function signUpUser(username: string, password: string): Promise<AuthResult> {
   const cleanUsername = username.trim();
-  if (!cleanUsername || cleanUsername.length < 3) {
-    return { success: false, error: 'Username minimal 3 karakter!' };
-  }
-  if (!password || password.length < 6) {
-    return { success: false, error: 'Password minimal 6 karakter!' };
-  }
+  if (!cleanUsername || cleanUsername.length < 3) return { success: false, error: 'Username minimal 3 karakter!' };
+  if (!password || password.length < 6) return { success: false, error: 'Password minimal 6 karakter!' };
 
   const normalizedUser = cleanUsername.toLowerCase().replace(/[^a-z0-9]/g, '') || `u${Date.now()}`;
+  const salt = generateSalt();
+  const hashedPassword = await hashPassword(password, salt);
+  const passwordHash = `${salt}:${hashedPassword}`;
 
   try {
     const supabase = getSupabaseClient();
-
-    // 1. Check duplicate username
-    const { data: existing } = await supabase
-      .from('profiles')
-      .select('id, username')
-      .eq('username', normalizedUser)
-      .maybeSingle();
-
-    if (existing) {
-      return { success: false, error: 'Username sudah digunakan, silakan pilih nama lain atau Masuk (Sign In)!' };
-    }
-
-    // 2. Hash password and insert into profiles table
-    const salt = generateSalt();
-    const hashedPassword = await hashPassword(password, salt);
-    const userId = `u_${normalizedUser}`;
-
-    const { error: insertError } = await supabase.from('profiles').insert({
-      username: normalizedUser,
-      password_hash: `${salt}:${hashedPassword}`,
+    const { data, error } = await supabase.rpc('register_player', {
+      p_username: normalizedUser,
+      p_password_hash: passwordHash,
     });
 
-    if (insertError) {
-      if (insertError.message.includes('duplicate') || insertError.message.includes('unique')) {
-        return { success: false, error: 'Username sudah digunakan, silakan pilih nama lain!' };
-      }
-      return { success: false, error: insertError.message };
-    }
+    if (error) return { success: false, error: error.message };
 
-    // 3. Persist session
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('player_name', cleanUsername);
-      localStorage.setItem('player_auth_id', userId);
-      sessionStorage.setItem('player_name', cleanUsername);
-      sessionStorage.setItem('player_auth_id', userId);
-    }
+    const result = data as { success: boolean; id?: string; error?: string };
+    if (!result.success) return { success: false, error: result.error || 'Pendaftaran gagal.' };
 
+    const userId = result.id || `u_${normalizedUser}`;
+    persistSession(cleanUsername, userId);
     return { success: true, user: { id: userId, username: cleanUsername } };
   } catch (err: unknown) {
     return { success: false, error: err instanceof Error ? err.message : 'Pendaftaran gagal.' };
   }
 }
 
-/**
- * Sign In with username and password (custom credential auth).
- * NO Supabase Auth — direct profiles table lookup.
- */
 export async function signInUser(username: string, password: string): Promise<AuthResult> {
   const cleanUsername = username.trim();
   if (!cleanUsername) return { success: false, error: 'Masukkan username kamu!' };
@@ -101,68 +60,56 @@ export async function signInUser(username: string, password: string): Promise<Au
   try {
     const supabase = getSupabaseClient();
 
-    // 1. Lookup profile by username
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('id, username, password_hash')
-      .eq('username', normalizedUser)
-      .maybeSingle();
-
-    if (error || !profile) {
+    // Ambil salt profil (bukan hash penuh) lalu hash password lokal
+    const { data: saltData, error: saltError } = await supabase.rpc('get_player_salt', {
+      p_username: normalizedUser,
+    });
+    if (saltError || !saltData) {
       return { success: false, error: 'Username atau password salah! Belum punya akun? Klik Daftar.' };
     }
 
-    // 2. Verify password hash
-    const [salt, storedHash] = (profile.password_hash || '').split(':');
-    if (!salt || !storedHash) {
-      return { success: false, error: 'Username atau password salah!' };
-    }
+    const salt = saltData as string;
+    const hashed = await hashPassword(password, salt);
 
-    const inputHash = await hashPassword(password, salt);
-    if (inputHash !== storedHash) {
-      return { success: false, error: 'Username atau password salah!' };
-    }
+    const { data, error } = await supabase.rpc('authenticate_player', {
+      p_username: normalizedUser,
+      p_password_hash: `${salt}:${hashed}`,
+    });
 
-    // 3. Persist session
-    const userId = profile.id || `u_${normalizedUser}`;
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('player_name', cleanUsername);
-      localStorage.setItem('player_auth_id', userId);
-      sessionStorage.setItem('player_name', cleanUsername);
-      sessionStorage.setItem('player_auth_id', userId);
-    }
+    if (error) return { success: false, error: error.message };
 
+    const result = data as { success: boolean; id?: string };
+    if (!result.success) return { success: false, error: 'Username atau password salah!' };
+
+    const userId = result.id || `u_${normalizedUser}`;
+    persistSession(cleanUsername, userId);
     return { success: true, user: { id: userId, username: cleanUsername } };
   } catch (err: unknown) {
     return { success: false, error: err instanceof Error ? err.message : 'Login gagal.' };
   }
 }
 
-/**
- * Guest/Anonymous login — no password needed.
- */
 export async function signInAsGuest(guestName?: string): Promise<AuthResult> {
   const num = Math.floor(1000 + Math.random() * 9000);
-  const name = guestName?.trim() ? guestName.trim() : `Guest_${num}`;
+  const name = guestName?.trim() || `Guest_${num}`;
   const id = `guest_${num}`;
-
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('player_name', name);
-    localStorage.setItem('player_auth_id', id);
-    sessionStorage.setItem('player_name', name);
-    sessionStorage.setItem('player_auth_id', id);
-  }
-
+  persistSession(name, id);
   return { success: true, user: { id, username: name } };
 }
 
-/**
- * Restore session from localStorage.
- */
 export async function getActiveSession(): Promise<{ id: string; username: string } | null> {
   if (typeof window === 'undefined') return null;
   const name = localStorage.getItem('player_name') || sessionStorage.getItem('player_name');
   const id = localStorage.getItem('player_auth_id') || sessionStorage.getItem('player_auth_id');
   if (name && id) return { id, username: name };
   return null;
+}
+
+function persistSession(username: string, id: string) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('player_name', username);
+    localStorage.setItem('player_auth_id', id);
+    sessionStorage.setItem('player_name', username);
+    sessionStorage.setItem('player_auth_id', id);
+  }
 }
