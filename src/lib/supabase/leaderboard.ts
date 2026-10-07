@@ -17,11 +17,34 @@ export interface SubmitScoreOptions {
 }
 
 /**
+ * Known mock / seeded dummy bot names from initial tests & placeholder seeds.
+ * These are filtered out from public leaderboards so genuine players rank properly.
+ */
+export const DUMMY_BOT_NAMES = new Set([
+  'dewi kurir',
+  'test_runner',
+  'kurir kilat sppg',
+  'bang jago mbg',
+  'siti cepat',
+  'garuda-1',
+  'kurir-mantap',
+  'test_up',
+  'kurir-juara',
+  'kurir-311',
+  'kurir-911',
+]);
+
+export function isDummyBotName(name: string): boolean {
+  if (!name) return true;
+  const clean = name.trim().toLowerCase();
+  if (DUMMY_BOT_NAMES.has(clean)) return true;
+  if (/^test_racer_\d+$/i.test(clean)) return true;
+  return false;
+}
+
+/**
  * Submit or update race score in Supabase `leaderboard` table.
- * Uses insert-with-personal-best logic compatible with RLS policies:
- * - Checks existing records for player
- * - If new time is faster, deletes prior record and inserts the faster one
- * - If player has no prior record, inserts new record
+ * If user beats previous record, inserts new faster time.
  */
 export async function submitScore(
   username: string,
@@ -30,6 +53,7 @@ export async function submitScore(
   legacyOptions?: SubmitScoreOptions
 ): Promise<boolean> {
   const options = typeof userIdOrOptions === 'object' ? userIdOrOptions : legacyOptions;
+
   try {
     const supabase = getSupabaseClient();
     const cleanUser = username.trim() || 'Kurir MBG';
@@ -39,23 +63,26 @@ export async function submitScore(
     const { data: existingRecords, error: fetchError } = await supabase
       .from('leaderboard')
       .select('id, player_name, finish_time')
-      .eq('player_name', cleanUser);
+      .ilike('player_name', cleanUser);
 
     if (fetchError) {
       console.warn('Leaderboard check warning:', fetchError.message);
     }
 
     if (existingRecords && existingRecords.length > 0) {
-      // Find current fastest recorded time
       const minTime = Math.min(...existingRecords.map((r) => Number(r.finish_time)));
       if (cleanTime >= minTime) {
         // Player did not beat personal best
         return true;
       }
 
-      // Player beat their record: remove older entries and insert the new best
-      const oldIds = existingRecords.map((r) => r.id);
-      await supabase.from('leaderboard').delete().in('id', oldIds);
+      // Player beat their record: remove older entries if delete is permitted
+      try {
+        const oldIds = existingRecords.map((r) => r.id);
+        await supabase.from('leaderboard').delete().in('id', oldIds);
+      } catch {
+        // Non-blocking if table RLS prevents delete
+      }
     }
 
     // 2. Insert new record
@@ -81,7 +108,8 @@ export async function submitScore(
 
 /**
  * Fetch top leaderboard entries ordered by fastest finish_time.
- * Groups by player_name so each player appears once with their best time.
+ * Filters out dummy seed bot records and deduplicates by player_name (case-insensitive)
+ * so each real human player appears once with their personal best time.
  */
 export async function getTopLeaderboard(limitCount: number = 10): Promise<LeaderboardEntry[]> {
   try {
@@ -90,21 +118,27 @@ export async function getTopLeaderboard(limitCount: number = 10): Promise<Leader
       .from('leaderboard')
       .select('*')
       .order('finish_time', { ascending: true })
-      .limit(limitCount * 2);
+      .limit(100);
 
     if (error || !data) {
       console.warn('Leaderboard fetch warning:', error?.message);
       return [];
     }
 
-    // Deduplicate by player_name in case multiple records exist
+    // Deduplicate and filter out bot / dummy mock records
     const seen = new Set<string>();
     const uniqueList: LeaderboardEntry[] = [];
 
     for (const row of data) {
       const name = (row.player_name || row.username || 'Kurir MBG').trim();
-      if (!seen.has(name)) {
-        seen.add(name);
+      const lowerName = name.toLowerCase();
+
+      if (isDummyBotName(name)) {
+        continue;
+      }
+
+      if (!seen.has(lowerName)) {
+        seen.add(lowerName);
         uniqueList.push({
           id: row.id,
           username: name,
@@ -114,7 +148,10 @@ export async function getTopLeaderboard(limitCount: number = 10): Promise<Leader
           pickups_collected: row.pickups_collected ?? 0,
           created_at: row.created_at,
         });
-        if (uniqueList.length >= limitCount) break;
+
+        if (uniqueList.length >= limitCount) {
+          break;
+        }
       }
     }
 

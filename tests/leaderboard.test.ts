@@ -23,7 +23,7 @@ describe('Leaderboard Schema and Service Integration', () => {
   });
 
   it('submits a score and updates personal best when faster', async () => {
-    const testUser = `Test_Racer_${Date.now()}`;
+    const testUser = `Kurir_Baru_${Date.now()}`;
     const initialSubmit = await submitScore(testUser, 35.5, { nitro_used: 1, pickups_collected: 2 });
     expect(initialSubmit).toBe(true);
 
