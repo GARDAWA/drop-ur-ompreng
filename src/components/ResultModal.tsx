@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { PlayerState } from '@/services/IMultiplayerService';
 import { sound } from '@/game/audio/SoundEffects';
 import { getTopLeaderboard, LeaderboardEntry } from '@/lib/supabase/leaderboard';
@@ -17,13 +17,30 @@ export const ResultModal: React.FC<ResultModalProps> = ({
   onExit,
 }) => {
   const [globalRank, setGlobalRank] = useState<LeaderboardEntry[]>([]);
+  const [isLoadingGlobal, setIsLoadingGlobal] = useState(true);
   const [showGlobal, setShowGlobal] = useState(false);
 
-  useEffect(() => {
-    getTopLeaderboard(5).then((data) => {
+  const fetchGlobal = useCallback(async () => {
+    setIsLoadingGlobal(true);
+    try {
+      const data = await getTopLeaderboard(5);
       setGlobalRank(data);
-    });
+    } finally {
+      setIsLoadingGlobal(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchGlobal();
+  }, [fetchGlobal]);
+
+  const handleTabChange = (isGlobal: boolean) => {
+    sound.playJump();
+    setShowGlobal(isGlobal);
+    if (isGlobal && globalRank.length === 0) {
+      fetchGlobal();
+    }
+  };
 
   const sorted = [...players].sort((a, b) => {
     if (a.finished && !b.finished) return -1;
@@ -62,14 +79,14 @@ export const ResultModal: React.FC<ResultModalProps> = ({
           {/* Toggle Tab */}
           <div className="flex bg-slate-950/80 p-1 rounded-xl border border-slate-800 mb-4 text-xs font-bold">
             <button
-              onClick={() => setShowGlobal(false)}
-              className={`flex-1 py-1.5 rounded-lg transition ${!showGlobal ? 'bg-amber-500 text-slate-950 font-black' : 'text-slate-400'}`}
+              onClick={() => handleTabChange(false)}
+              className={`flex-1 py-1.5 rounded-lg transition ${!showGlobal ? 'bg-amber-500 text-slate-950 font-black shadow' : 'text-slate-400 hover:text-white'}`}
             >
               Hasil Match Ini
             </button>
             <button
-              onClick={() => setShowGlobal(true)}
-              className={`flex-1 py-1.5 rounded-lg transition ${showGlobal ? 'bg-amber-500 text-slate-950 font-black' : 'text-slate-400'}`}
+              onClick={() => handleTabChange(true)}
+              className={`flex-1 py-1.5 rounded-lg transition ${showGlobal ? 'bg-amber-500 text-slate-950 font-black shadow' : 'text-slate-400 hover:text-white'}`}
             >
               Top 5 Global 🌐
             </button>
@@ -105,8 +122,12 @@ export const ResultModal: React.FC<ResultModalProps> = ({
             </div>
           ) : (
             <div className="space-y-2 mb-6">
-              {globalRank.length === 0 ? (
-                <div className="text-xs text-slate-400 py-4">Memuat leaderboard Supabase...</div>
+              {isLoadingGlobal ? (
+                <div className="text-xs text-slate-400 py-4 flex items-center justify-center gap-2">
+                  <span className="animate-spin inline-block">⏳</span> Memuat leaderboard Supabase...
+                </div>
+              ) : globalRank.length === 0 ? (
+                <div className="text-xs text-slate-400 py-4">Belum ada catatan waktu balap.</div>
               ) : (
                 globalRank.map((entry, idx) => (
                   <div
@@ -117,7 +138,7 @@ export const ResultModal: React.FC<ResultModalProps> = ({
                       <span className="font-mono font-bold text-amber-400">#{idx + 1}</span>
                       <span className="font-bold text-slate-200">{entry.username}</span>
                     </div>
-                    <span className="font-mono font-bold text-emerald-400">{entry.best_time}s</span>
+                    <span className="font-mono font-bold text-emerald-400">{entry.best_time.toFixed(2)}s</span>
                   </div>
                 ))
               )}

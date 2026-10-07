@@ -2,64 +2,125 @@ import { getSupabaseClient } from './client';
 
 export interface LeaderboardEntry {
   id?: string;
-  user_id?: string;
   username: string;
   best_time: number;
+  nitro_used?: number;
+  stunts_performed?: number;
+  pickups_collected?: number;
   created_at?: string;
 }
 
-export async function submitScore(username: string, timeSeconds: number, userId?: string): Promise<boolean> {
+export interface SubmitScoreOptions {
+  nitro_used?: number;
+  stunts_performed?: number;
+  pickups_collected?: number;
+}
+
+/**
+ * Submit or update race score in Supabase `leaderboard` table.
+ * Uses insert-with-personal-best logic compatible with RLS policies:
+ * - Checks existing records for player
+ * - If new time is faster, deletes prior record and inserts the faster one
+ * - If player has no prior record, inserts new record
+ */
+export async function submitScore(
+  username: string,
+  timeSeconds: number,
+  userIdOrOptions?: string | SubmitScoreOptions,
+  legacyOptions?: SubmitScoreOptions
+): Promise<boolean> {
+  const options = typeof userIdOrOptions === 'object' ? userIdOrOptions : legacyOptions;
   try {
     const supabase = getSupabaseClient();
     const cleanUser = username.trim() || 'Kurir MBG';
     const cleanTime = Number(timeSeconds.toFixed(2));
 
-    // Check personal record to only update if new score is faster
-    const { data: existing } = await supabase
+    // 1. Check existing personal record
+    const { data: existingRecords, error: fetchError } = await supabase
       .from('leaderboard')
-      .select('id, best_time')
-      .eq('username', cleanUser)
-      .maybeSingle();
+      .select('id, player_name, finish_time')
+      .eq('player_name', cleanUser);
 
-    if (existing) {
-      if (cleanTime < Number(existing.best_time)) {
-        await supabase
-          .from('leaderboard')
-          .update({ best_time: cleanTime, user_id: userId || null })
-          .eq('id', existing.id);
-      }
-      return true;
+    if (fetchError) {
+      console.warn('Leaderboard check warning:', fetchError.message);
     }
 
-    const { error } = await supabase.from('leaderboard').insert({
-      username: cleanUser,
-      best_time: cleanTime,
-      user_id: userId || null,
+    if (existingRecords && existingRecords.length > 0) {
+      // Find current fastest recorded time
+      const minTime = Math.min(...existingRecords.map((r) => Number(r.finish_time)));
+      if (cleanTime >= minTime) {
+        // Player did not beat personal best
+        return true;
+      }
+
+      // Player beat their record: remove older entries and insert the new best
+      const oldIds = existingRecords.map((r) => r.id);
+      await supabase.from('leaderboard').delete().in('id', oldIds);
+    }
+
+    // 2. Insert new record
+    const { error: insertError } = await supabase.from('leaderboard').insert({
+      player_name: cleanUser,
+      finish_time: cleanTime,
+      nitro_used: options?.nitro_used ?? 0,
+      stunts_performed: options?.stunts_performed ?? 0,
+      pickups_collected: options?.pickups_collected ?? 0,
     });
-    if (error) {
-      console.warn('Leaderboard submission warning:', error.message);
+
+    if (insertError) {
+      console.warn('Leaderboard insert warning:', insertError.message);
       return false;
     }
+
     return true;
-  } catch {
+  } catch (err) {
+    console.warn('Leaderboard submission exception:', err);
     return false;
   }
 }
 
+/**
+ * Fetch top leaderboard entries ordered by fastest finish_time.
+ * Groups by player_name so each player appears once with their best time.
+ */
 export async function getTopLeaderboard(limitCount: number = 10): Promise<LeaderboardEntry[]> {
   try {
     const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('leaderboard')
       .select('*')
-      .order('best_time', { ascending: true })
-      .limit(limitCount);
+      .order('finish_time', { ascending: true })
+      .limit(limitCount * 2);
 
     if (error || !data) {
+      console.warn('Leaderboard fetch warning:', error?.message);
       return [];
     }
-    return data as LeaderboardEntry[];
-  } catch {
+
+    // Deduplicate by player_name in case multiple records exist
+    const seen = new Set<string>();
+    const uniqueList: LeaderboardEntry[] = [];
+
+    for (const row of data) {
+      const name = (row.player_name || row.username || 'Kurir MBG').trim();
+      if (!seen.has(name)) {
+        seen.add(name);
+        uniqueList.push({
+          id: row.id,
+          username: name,
+          best_time: Number(row.finish_time ?? row.best_time ?? 0),
+          nitro_used: row.nitro_used ?? 0,
+          stunts_performed: row.stunts_performed ?? 0,
+          pickups_collected: row.pickups_collected ?? 0,
+          created_at: row.created_at,
+        });
+        if (uniqueList.length >= limitCount) break;
+      }
+    }
+
+    return uniqueList;
+  } catch (err) {
+    console.warn('Leaderboard fetch exception:', err);
     return [];
   }
 }

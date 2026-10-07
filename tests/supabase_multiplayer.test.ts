@@ -109,9 +109,15 @@ describe('SupabaseRealtimeService Online Multiplayer', () => {
         receivedName = name;
       });
 
+      // Allow subscription setup to register
+      await new Promise((resolve) => setTimeout(resolve, 50));
       guest.broadcastPosition(2400, 395);
 
-      await new Promise((resolve) => setTimeout(resolve, 80));
+      // Wait with condition polling for async broadcast delivery
+      const startWait = Date.now();
+      while (!receivedId && Date.now() - startWait < 800) {
+        await new Promise((resolve) => setTimeout(resolve, 30));
+      }
 
       expect(receivedId).toBe(guest.getLocalPlayerId());
       expect(receivedX).toBe(2400);
