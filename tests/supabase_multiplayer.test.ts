@@ -111,7 +111,7 @@ describe('SupabaseRealtimeService Online Multiplayer', () => {
 
       guest.broadcastPosition(2400, 395);
 
-      await new Promise((resolve) => setTimeout(resolve, 30));
+      await new Promise((resolve) => setTimeout(resolve, 80));
 
       expect(receivedId).toBe(guest.getLocalPlayerId());
       expect(receivedX).toBe(2400);

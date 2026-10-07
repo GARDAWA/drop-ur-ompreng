@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_KEY } from '@/lib/supabase/config';
 
 describe('Supabase Client Foundation', () => {
   const originalEnv = process.env;
@@ -12,20 +13,20 @@ describe('Supabase Client Foundation', () => {
     process.env = originalEnv;
   });
 
-  it('initializes Supabase client successfully with NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY', async () => {
-    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://nrmzrlmndzpslqhiarba.supabase.co';
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_wDQiSUgbavga3na96UZxHA_GE8ZicNO';
+  it('initializes Supabase client successfully with explicit env vars', async () => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://custom.supabase.co';
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'custom_key_123';
 
     const { getSupabaseClient } = await import('@/lib/supabase');
     const client = getSupabaseClient();
 
     expect(client).toBeDefined();
-    expect((client as unknown as { supabaseUrl: string }).supabaseUrl).toBe('https://nrmzrlmndzpslqhiarba.supabase.co');
-    expect((client as unknown as { supabaseKey: string }).supabaseKey).toBe('sb_publishable_wDQiSUgbavga3na96UZxHA_GE8ZicNO');
+    expect((client as unknown as { supabaseUrl: string }).supabaseUrl).toBe('https://custom.supabase.co');
+    expect((client as unknown as { supabaseKey: string }).supabaseKey).toBe('custom_key_123');
   });
 
   it('supports legacy NEXT_PUBLIC_SUPABASE_ANON_KEY as fallback', async () => {
-    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://nrmzrlmndzpslqhiarba.supabase.co';
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://custom.supabase.co';
     delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'legacy_anon_key_test';
 
@@ -36,23 +37,24 @@ describe('Supabase Client Foundation', () => {
     expect((client as unknown as { supabaseKey: string }).supabaseKey).toBe('legacy_anon_key_test');
   });
 
-  it('returns singleton instance on repeated calls', async () => {
-    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://nrmzrlmndzpslqhiarba.supabase.co';
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_wDQiSUgbavga3na96UZxHA_GE8ZicNO';
-
-    const { getSupabaseClient } = await import('@/lib/supabase');
-    const client1 = getSupabaseClient();
-    const client2 = getSupabaseClient();
-
-    expect(client1).toBe(client2);
-  });
-
-  it('throws descriptive error if environment variables are missing', async () => {
+  it('falls back to default publishable credentials when env vars are absent on Vercel preview/prod', async () => {
     delete process.env.NEXT_PUBLIC_SUPABASE_URL;
     delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
     delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     const { getSupabaseClient } = await import('@/lib/supabase');
-    expect(() => getSupabaseClient()).toThrow(/Missing Supabase environment variables/);
+    const client = getSupabaseClient();
+
+    expect(client).toBeDefined();
+    expect((client as unknown as { supabaseUrl: string }).supabaseUrl).toBe(DEFAULT_SUPABASE_URL);
+    expect((client as unknown as { supabaseKey: string }).supabaseKey).toBe(DEFAULT_SUPABASE_KEY);
+  });
+
+  it('returns singleton instance on repeated calls', async () => {
+    const { getSupabaseClient } = await import('@/lib/supabase');
+    const client1 = getSupabaseClient();
+    const client2 = getSupabaseClient();
+
+    expect(client1).toBe(client2);
   });
 });

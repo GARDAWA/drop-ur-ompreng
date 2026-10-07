@@ -1,18 +1,15 @@
 import { SupabaseRealtimeService } from './SupabaseRealtimeService';
 import { BroadcastChannelService } from './BroadcastChannelService';
 import { IMultiplayerService } from './IMultiplayerService';
+import { getResolvedSupabaseConfig } from '@/lib/supabase/config';
 
 let serviceInstance: IMultiplayerService | null = null;
 
 export function getMultiplayerService(): IMultiplayerService {
   if (!serviceInstance) {
-    const hasSupabaseUrl = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
-    const hasSupabaseKey = Boolean(
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    );
+    const { url, key } = getResolvedSupabaseConfig();
 
-    if (hasSupabaseUrl && hasSupabaseKey) {
+    if (url && key) {
       serviceInstance = new SupabaseRealtimeService();
     } else {
       serviceInstance = new BroadcastChannelService();

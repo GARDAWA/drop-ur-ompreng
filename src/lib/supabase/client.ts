@@ -1,27 +1,20 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { getResolvedSupabaseConfig } from './config';
 
 let supabaseInstance: SupabaseClient | null = null;
 
 /**
  * Returns a singleton instance of the Supabase client.
- * Reads configuration from NEXT_PUBLIC_SUPABASE_URL and
- * NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (with fallback to NEXT_PUBLIC_SUPABASE_ANON_KEY).
+ * Uses environment variables when provided, or defaults to the project's
+ * public endpoint and publishable key so that Vercel previews and
+ * other client devices function immediately without manual configuration.
  */
 export function getSupabaseClient(): SupabaseClient {
   if (supabaseInstance) {
     return supabaseInstance;
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error(
-      'Missing Supabase environment variables. Please ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (or NEXT_PUBLIC_SUPABASE_ANON_KEY) are configured.'
-    );
-  }
+  const { url: supabaseUrl, key: supabaseKey } = getResolvedSupabaseConfig();
 
   supabaseInstance = createClient(supabaseUrl, supabaseKey, {
     auth: {
