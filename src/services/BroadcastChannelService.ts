@@ -58,7 +58,7 @@ export class BroadcastChannelService implements IMultiplayerService {
     this.localPlayerName = playerName;
     this.localPlayerId = 'p_' + Math.random().toString(36).substring(2, 9);
     if (typeof BroadcastChannel !== 'undefined') {
-      this.channel = new BroadcastChannel(`drop_embege_room_${roomId}`);
+      this.channel = new BroadcastChannel(`drop_ompreng_room_${roomId}`);
     }
 
     // Both host and joiner start with isReady = false in lobby

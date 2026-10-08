@@ -182,7 +182,7 @@ export default function HomePage() {
             <span className="text-sm">🚗</span> MULTIPLAYER RACE
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-amber-300 tracking-wider drop-shadow-md">
-            DROP UR EMBEGE!
+            DROP UR OMPRENG!
           </h1>
           <p className="text-xs text-slate-300 mt-1 font-medium">
             Balap Pengantaran Makanan Bergizi Gratis (SPPG) ke Sekolah!

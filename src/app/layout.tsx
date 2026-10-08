@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Drop Ur EmBeGe! - 2D Multiplayer Web Arcade',
+  title: 'Drop Ur Ompreng! - 2D Multiplayer Web Arcade',
   description: 'Game Balapan Pengantaran Makanan Bergizi Gratis (MBG) dari SPPG ke Sekolah',
   icons: {
     icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚗</text></svg>',

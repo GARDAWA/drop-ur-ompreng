@@ -132,7 +132,7 @@ export class SupabaseRealtimeService implements IMultiplayerService {
     // Setup local BroadcastChannel for same-browser instant tab sync & offline resilience
     if (typeof BroadcastChannel !== 'undefined') {
       try {
-        this.fallbackChannel = new BroadcastChannel(`drop_embege_room_${roomId}`);
+        this.fallbackChannel = new BroadcastChannel(`drop_ompreng_room_${roomId}`);
         this.fallbackChannel.onmessage = (event: MessageEvent) => {
           this.handleFallbackMessage(event.data);
         };
