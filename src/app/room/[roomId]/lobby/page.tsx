@@ -18,6 +18,8 @@ export default function LobbyPage() {
   const [playerName, setPlayerName] = useState('');
   const [isMuted, setIsMuted] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const storedName =
@@ -61,18 +63,35 @@ export default function LobbyPage() {
     getMultiplayerService().setReady(next);
   };
 
-  const startRace = () => {
-    if (isStarting) return;
+  const startRace = async () => {
+    if (isStarting || isSubmitting) return;
+    setIsSubmitting(true);
     setIsStarting(true);
-    sound.playCountdown(true);
+    setErrorMessage(null);
 
-    const service = getMultiplayerService();
-    // Auto-set ready for the host when starting
-    service.setReady(true);
-    service.startMatch();
+    try {
+      const service = getMultiplayerService();
+      // Auto-set ready for the host when starting
+      service.setReady(true);
 
-    // Host navigates immediately to race
-    router.push(`/room/${roomId}/race`);
+      const result = await service.requestStartMatch();
+
+      if (result.success && result.isHost) {
+        sound.playCountdown(true);
+        // Host navigates immediately to race
+        router.push(`/room/${roomId}/race`);
+      } else {
+        setIsStarting(false);
+        setIsSubmitting(false);
+        if (result.message) {
+          setErrorMessage(result.message);
+        }
+      }
+    } catch {
+      setIsStarting(false);
+      setIsSubmitting(false);
+      setErrorMessage('Terjadi gangguan koneksi saat memulai room.');
+    }
   };
 
   const copyCode = () => {
@@ -111,11 +130,11 @@ export default function LobbyPage() {
   const myPlayer =
     players.find((p) => p.id === localId) || players.find((p) => p.name === playerName);
 
-  // Jika bermain sendiri di room, player bertindak sebagai Host. Jika multiplayer, cek flag isHost yang sebenarnya
+  // Hanya anggap host jika eksplisit di-flag oleh player state atau session storage
   const isHost =
-    players.length === 1 ||
     Boolean(myPlayer?.isHost) ||
-    (typeof window !== 'undefined' && sessionStorage.getItem(`is_host_${roomId}`) === 'true');
+    (typeof window !== 'undefined' && sessionStorage.getItem(`is_host_${roomId}`) === 'true') ||
+    (players.length <= 1 && (!myPlayer || myPlayer.isHost));
 
   const readyCount = players.filter((p) => p.isReady).length;
   const allOthersReady = players.length > 1 && players.every((p) => p.id === localId || p.isReady);
@@ -258,15 +277,15 @@ export default function LobbyPage() {
             <button
               id="lobby-start-btn"
               onClick={startRace}
-              disabled={!canStart || isStarting}
+              disabled={!canStart || isStarting || isSubmitting}
               className={`flex-1 py-3.5 px-4 rounded-xl font-black text-sm uppercase tracking-wider transition active:scale-[0.98] shadow-lg ${
-                canStart
+                canStart && !isSubmitting
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 shadow-amber-500/30 cursor-pointer animate-pulse'
                   : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-800'
               }`}
             >
-              {isStarting
-                ? 'Memulai Balapan...'
+              {isSubmitting || isStarting
+                ? 'Memverifikasi Server... ⏳'
                 : isSolo
                 ? 'Mulai Solo (Latihan) 🏁'
                 : canStart
@@ -279,6 +298,12 @@ export default function LobbyPage() {
             </div>
           )}
         </div>
+
+        {errorMessage && (
+          <div className="mt-3 p-3 bg-rose-500/20 border border-rose-500/50 rounded-xl text-xs text-rose-300 font-semibold text-center">
+            ⚠️ {errorMessage}
+          </div>
+        )}
 
         {/* Online Info Tip */}
         <div className="mt-6 pt-4 border-t border-slate-800/80 text-center space-y-1.5">

@@ -45,6 +45,10 @@ export class SupabaseService implements IMultiplayerService {
     // channel.send({ type: 'broadcast', event: 'start_match', payload: {} })
   }
 
+  public async requestStartMatch(): Promise<{ success: boolean; isHost: boolean; message?: string }> {
+    return { success: true, isHost: true };
+  }
+
   public broadcastPosition(x: number, y: number): void {
     // channel.send({ type: 'broadcast', event: 'pos', payload: { x, y } }) (throttled)
   }

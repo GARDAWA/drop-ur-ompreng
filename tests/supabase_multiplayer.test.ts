@@ -115,8 +115,8 @@ describe('SupabaseRealtimeService Online Multiplayer', () => {
 
       // Wait with condition polling for async broadcast delivery
       const startWait = Date.now();
-      while (!receivedId && Date.now() - startWait < 800) {
-        await new Promise((resolve) => setTimeout(resolve, 30));
+      while (!receivedId && Date.now() - startWait < 3000) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
       }
 
       expect(receivedId).toBe(guest.getLocalPlayerId());

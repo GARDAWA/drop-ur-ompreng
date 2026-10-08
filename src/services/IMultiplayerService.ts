@@ -15,12 +15,19 @@ export type PositionListener = (playerId: string, x: number, y: number, name?: s
 export type FinishListener = (playerId: string, finishTime: number) => void;
 export type ReplayListener = () => void;
 
+export interface StartMatchResult {
+  success: boolean;
+  isHost: boolean;
+  message?: string;
+}
+
 export interface IMultiplayerService {
   createRoom(hostName: string): Promise<string>;
   joinRoom(roomId: string, playerName: string): Promise<boolean>;
   leaveRoom(): void;
   setReady(isReady: boolean): void;
   startMatch(): void;
+  requestStartMatch(): Promise<StartMatchResult>;
   broadcastPosition(x: number, y: number): void;
   broadcastFinish(timeElapsed: number): void;
   broadcastReplay(): void;

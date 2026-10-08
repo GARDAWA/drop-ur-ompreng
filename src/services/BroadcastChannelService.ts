@@ -202,6 +202,22 @@ export class BroadcastChannelService implements IMultiplayerService {
     this.matchStartListeners.forEach((cb) => cb());
   }
 
+  public async requestStartMatch(): Promise<{ success: boolean; isHost: boolean; message?: string }> {
+    const local = this.players.get(this.localPlayerId);
+    const isActuallyHost = Boolean(local?.isHost);
+
+    if (!isActuallyHost && this.players.size > 1) {
+      return {
+        success: false,
+        isHost: false,
+        message: 'Hanya host yang dapat memulai balapan.',
+      };
+    }
+
+    this.startMatch();
+    return { success: true, isHost: true };
+  }
+
   public broadcastPosition(x: number, y: number): void {
     if (!this.channel) return;
     if (this.throttleTimer) return;

@@ -464,15 +464,68 @@ export class SupabaseRealtimeService implements IMultiplayerService {
       this.channel.send({
         type: 'broadcast',
         event: 'start_match',
-        payload: {},
+        payload: { hostId: this.localPlayerId },
       }).catch(() => {});
     }
 
     // Broadcast via fallback
-    this.fallbackChannel?.postMessage({ type: 'MATCH_START' });
+    this.fallbackChannel?.postMessage({ type: 'MATCH_START', hostId: this.localPlayerId });
 
     // Local notification
     this.matchStartListeners.forEach((cb) => cb());
+  }
+
+  public async requestStartMatch(): Promise<{ success: boolean; isHost: boolean; message?: string }> {
+    if (!this.currentRoomId) {
+      return { success: false, isHost: false, message: 'Room tidak valid' };
+    }
+
+    if (this.supabase) {
+      try {
+        const { data, error } = await this.supabase.rpc('claim_room_start', {
+          p_room_code: this.currentRoomId,
+          p_player_id: this.localPlayerId,
+          p_player_name: this.localPlayerName,
+        });
+
+        if (!error && data) {
+          const res = data as { success: boolean; is_host: boolean; message?: string; host_id?: string };
+          if (res.is_host) {
+            this.isHost = true;
+            if (typeof window !== 'undefined') {
+              sessionStorage.setItem(`is_host_${this.currentRoomId}`, 'true');
+            }
+            this.startMatch();
+            return { success: true, isHost: true };
+          } else {
+            this.isHost = false;
+            if (typeof window !== 'undefined') {
+              sessionStorage.removeItem(`is_host_${this.currentRoomId}`);
+            }
+            return {
+              success: false,
+              isHost: false,
+              message: res.message || 'Pemain lain telah memulai balapan sebagai Host!',
+            };
+          }
+        }
+      } catch {
+        // Fallback to local host check if RPC not deployed or network partition occurs
+      }
+    }
+
+    const local = this.players.get(this.localPlayerId);
+    const isActuallyHost = Boolean(local?.isHost || this.isHost);
+    if (!isActuallyHost && this.players.size > 1) {
+      return {
+        success: false,
+        isHost: false,
+        message: 'Hanya host yang dapat memulai balapan.',
+      };
+    }
+
+    this.startMatch();
+    return { success: true, isHost: true };
   }
 
   public broadcastPosition(x: number, y: number): void {
